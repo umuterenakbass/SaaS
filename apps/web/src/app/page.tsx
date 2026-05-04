@@ -1,4 +1,5 @@
 import { ApiHealthCard } from "@/components/api-health-card";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -28,6 +29,27 @@ export default function Home() {
             <p className="text-sm text-zinc-500">Tahsilat Oranı</p>
             <p className="mt-2 text-2xl font-semibold">-</p>
           </div>
+        </section>
+
+        <section className="flex flex-wrap gap-3">
+          <Link
+            href="/register"
+            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+          >
+            Site Yöneticisi Kaydı
+          </Link>
+          <Link
+            href="/login"
+            className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+          >
+            Giriş Yap
+          </Link>
+          <Link
+            href="/dashboard"
+            className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+          >
+            Dashboard&apos;a Git
+          </Link>
         </section>
 
         <ApiHealthCard />

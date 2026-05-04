@@ -14,7 +14,10 @@ dependencies = [
   "sqlalchemy>=2.0.30,<3.0.0",
   "alembic>=1.13.2,<2.0.0",
   "pydantic-settings>=2.3.4,<3.0.0",
-  "psycopg[binary]>=3.2.0,<4.0.0"
+  "psycopg[binary]>=3.2.0,<4.0.0",
+  "python-jose[cryptography]>=3.3.0,<4.0.0",
+  "python-multipart>=0.0.9,<1.0.0",
+  "email-validator>=2.2.0,<3.0.0"
 ]
 
 [project.optional-dependencies]
@@ -34,6 +37,7 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
+ignore = ["B008"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
