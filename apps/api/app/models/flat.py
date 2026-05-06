@@ -4,7 +4,7 @@ import enum
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Enum, ForeignKey, Integer, String
+from sqlalchemy import Enum, ForeignKey, Index, Integer, String, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, SoftDeleteMixin, TimestampMixin
@@ -21,6 +21,16 @@ class FlatStatus(enum.StrEnum):
 
 class Flat(Base, TimestampMixin, SoftDeleteMixin):
     __tablename__ = "flats"
+    __table_args__ = (
+        Index(
+            "uq_flats_block_id_unit_no_active",
+            "block_id",
+            "unit_no",
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL"),
+            sqlite_where=text("deleted_at IS NULL"),
+        ),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     site_id: Mapped[str] = mapped_column(

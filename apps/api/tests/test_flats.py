@@ -62,3 +62,15 @@ def test_flats_create_list_and_duplicate_guard(client: TestClient) -> None:
 
     delete_resp = client.delete(f"/api/v1/flats/{flat_id}", headers=headers)
     assert delete_resp.status_code == 204
+
+    recreate_resp = client.post(
+        "/api/v1/flats",
+        json={"block_id": block_id, "unit_no": "2", "floor": 3, "status": "active"},
+        headers=headers,
+    )
+    assert recreate_resp.status_code == 201
+
+    list_after_recreate = client.get("/api/v1/flats", headers=headers)
+    assert list_after_recreate.status_code == 200
+    assert len(list_after_recreate.json()) == 1
+    assert list_after_recreate.json()[0]["unit_no"] == "2"

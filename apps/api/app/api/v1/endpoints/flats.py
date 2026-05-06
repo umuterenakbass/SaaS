@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.deps import require_roles, require_tenant_context
@@ -66,7 +67,14 @@ def create_flat(
         status=payload.status,
     )
     db.add(flat)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Flat unit already exists",
+        ) from None
     db.refresh(flat)
 
     return FlatResponse.model_validate(flat, from_attributes=True)
@@ -134,7 +142,14 @@ def update_flat(
     for key, value in updates.items():
         setattr(flat, key, value.strip() if isinstance(value, str) else value)
 
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Flat unit already exists",
+        ) from None
     db.refresh(flat)
     return FlatResponse.model_validate(flat, from_attributes=True)
 
