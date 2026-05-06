@@ -35,6 +35,41 @@ export type TenantContextResponse = {
   role: string;
 };
 
+export type Block = {
+  id: string;
+  site_id: string;
+  name: string;
+  code: string;
+};
+
+export type Flat = {
+  id: string;
+  site_id: string;
+  block_id: string;
+  unit_no: string;
+  floor: number;
+  status: "active" | "inactive";
+};
+
+export type ResidentRelation = {
+  id: string;
+  site_id: string;
+  user_id: string;
+  flat_id: string;
+  relation_type: "owner" | "tenant";
+  start_date: string;
+  end_date: string | null;
+  is_primary: boolean;
+};
+
+function buildTenantHeaders(token: string, siteId: string, withJsonContent = true): HeadersInit {
+  return {
+    Authorization: `Bearer ${token}`,
+    "X-Site-Id": siteId,
+    ...(withJsonContent ? { "Content-Type": "application/json" } : {}),
+  };
+}
+
 export async function fetchApiHealth(): Promise<ApiHealthResponse> {
   const response = await fetch(`${API_BASE_URL}/api/v1/health`, {
     method: "GET",
@@ -123,4 +158,136 @@ export async function fetchTenantContext(
   }
 
   return (await response.json()) as TenantContextResponse;
+}
+
+export async function listBlocks(token: string, siteId: string): Promise<Block[]> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/blocks`, {
+    method: "GET",
+    headers: buildTenantHeaders(token, siteId, false),
+  });
+  if (!response.ok) {
+    throw new Error(`Bloklar alınamadı (${response.status})`);
+  }
+  return (await response.json()) as Block[];
+}
+
+export async function createBlock(
+  token: string,
+  siteId: string,
+  payload: { name: string; code: string },
+): Promise<Block> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/blocks`, {
+    method: "POST",
+    headers: buildTenantHeaders(token, siteId),
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Blok oluşturulamadı (${response.status}): ${text}`);
+  }
+  return (await response.json()) as Block;
+}
+
+export async function deleteBlock(token: string, siteId: string, blockId: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/blocks/${blockId}`, {
+    method: "DELETE",
+    headers: buildTenantHeaders(token, siteId, false),
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Blok silinemedi (${response.status}): ${text}`);
+  }
+}
+
+export async function listFlats(token: string, siteId: string, blockId?: string): Promise<Flat[]> {
+  const query = blockId ? `?block_id=${encodeURIComponent(blockId)}` : "";
+  const response = await fetch(`${API_BASE_URL}/api/v1/flats${query}`, {
+    method: "GET",
+    headers: buildTenantHeaders(token, siteId, false),
+  });
+  if (!response.ok) {
+    throw new Error(`Daireler alınamadı (${response.status})`);
+  }
+  return (await response.json()) as Flat[];
+}
+
+export async function createFlat(
+  token: string,
+  siteId: string,
+  payload: { block_id: string; unit_no: string; floor: number; status: "active" | "inactive" },
+): Promise<Flat> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/flats`, {
+    method: "POST",
+    headers: buildTenantHeaders(token, siteId),
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Daire oluşturulamadı (${response.status}): ${text}`);
+  }
+  return (await response.json()) as Flat;
+}
+
+export async function deleteFlat(token: string, siteId: string, flatId: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/flats/${flatId}`, {
+    method: "DELETE",
+    headers: buildTenantHeaders(token, siteId, false),
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Daire silinemedi (${response.status}): ${text}`);
+  }
+}
+
+export async function listResidentRelations(
+  token: string,
+  siteId: string,
+): Promise<ResidentRelation[]> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/resident-relations`, {
+    method: "GET",
+    headers: buildTenantHeaders(token, siteId, false),
+  });
+  if (!response.ok) {
+    throw new Error(`İlişkiler alınamadı (${response.status})`);
+  }
+  return (await response.json()) as ResidentRelation[];
+}
+
+export async function createResidentRelation(
+  token: string,
+  siteId: string,
+  payload: {
+    user_id: string;
+    flat_id: string;
+    relation_type: "owner" | "tenant";
+    start_date: string;
+    end_date: string | null;
+    is_primary: boolean;
+  },
+): Promise<ResidentRelation> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/resident-relations`, {
+    method: "POST",
+    headers: buildTenantHeaders(token, siteId),
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`İlişki oluşturulamadı (${response.status}): ${text}`);
+  }
+  return (await response.json()) as ResidentRelation;
+}
+
+export async function deleteResidentRelation(
+  token: string,
+  siteId: string,
+  relationId: string,
+): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/resident-relations/${relationId}`, {
+    method: "DELETE",
+    headers: buildTenantHeaders(token, siteId, false),
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`İlişki silinemedi (${response.status}): ${text}`);
+  }
 }

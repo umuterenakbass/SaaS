@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { fetchCurrentUser, fetchTenantContext } from "@/lib/api";
@@ -76,6 +77,27 @@ export default function DashboardPage() {
             <p className="text-sm text-zinc-500">Rol</p>
             <p className="mt-1 font-medium capitalize text-zinc-900">{role}</p>
           </article>
+        </section>
+
+        <section className="flex flex-wrap gap-3">
+          <Link
+            href="/dashboard/blocks"
+            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white"
+          >
+            Blok Yönetimi
+          </Link>
+          <Link
+            href="/dashboard/flats"
+            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white"
+          >
+            Daire Yönetimi
+          </Link>
+          <Link
+            href="/dashboard/residents"
+            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white"
+          >
+            Sakin İlişkileri
+          </Link>
         </section>
 
         <button
