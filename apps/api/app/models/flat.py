@@ -10,6 +10,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base, SoftDeleteMixin, TimestampMixin
 
 if TYPE_CHECKING:
+    from app.models.charge import Charge
+    from app.models.payment import Payment
     from app.models.block import Block
     from app.models.resident_flat_relation import ResidentFlatRelation
 
@@ -51,3 +53,5 @@ class Flat(Base, TimestampMixin, SoftDeleteMixin):
 
     block: Mapped[Block] = relationship(back_populates="flats")
     resident_relations: Mapped[list[ResidentFlatRelation]] = relationship(back_populates="flat")
+    charges: Mapped[list[Charge]] = relationship(back_populates="flat")
+    payments: Mapped[list[Payment]] = relationship(back_populates="flat")

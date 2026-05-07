@@ -62,6 +62,57 @@ export type ResidentRelation = {
   is_primary: boolean;
 };
 
+export type ChargeStatus = "pending" | "paid" | "cancelled";
+
+export type Charge = {
+  id: string;
+  site_id: string;
+  flat_id: string;
+  charge_type: string;
+  period: string;
+  amount: string;
+  due_date: string;
+  status: ChargeStatus;
+};
+
+export type PaymentMethod = "cash" | "bank_transfer" | "credit_card" | "other";
+
+export type Payment = {
+  id: string;
+  site_id: string;
+  flat_id: string;
+  amount: string;
+  paid_at: string;
+  method: PaymentMethod;
+  reference_no: string | null;
+  note: string | null;
+};
+
+export type FlatLedger = {
+  site_id: string;
+  flat_id: string;
+  total_charges: string;
+  total_payments: string;
+  balance: string;
+  charge_count: number;
+  payment_count: number;
+  recent_charges: Array<{
+    charge_id: string;
+    charge_type: string;
+    period: string;
+    amount: string;
+    due_date: string;
+    status: ChargeStatus;
+  }>;
+  recent_payments: Array<{
+    payment_id: string;
+    amount: string;
+    paid_at: string;
+    method: PaymentMethod;
+    reference_no: string | null;
+  }>;
+};
+
 function buildTenantHeaders(token: string, siteId: string, withJsonContent = true): HeadersInit {
   return {
     Authorization: `Bearer ${token}`,
@@ -290,4 +341,137 @@ export async function deleteResidentRelation(
     const text = await response.text();
     throw new Error(`İlişki silinemedi (${response.status}): ${text}`);
   }
+}
+
+export async function listCharges(
+  token: string,
+  siteId: string,
+  params?: { flat_id?: string; period?: string; status?: ChargeStatus },
+): Promise<Charge[]> {
+  const query = new URLSearchParams();
+  if (params?.flat_id) query.set("flat_id", params.flat_id);
+  if (params?.period) query.set("period", params.period);
+  if (params?.status) query.set("status", params.status);
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/charges${query.toString() ? `?${query.toString()}` : ""}`,
+    {
+      method: "GET",
+      headers: buildTenantHeaders(token, siteId, false),
+    },
+  );
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Borçlar alınamadı (${response.status}): ${text}`);
+  }
+  return (await response.json()) as Charge[];
+}
+
+export async function createCharge(
+  token: string,
+  siteId: string,
+  payload: {
+    flat_id: string;
+    charge_type: string;
+    period: string;
+    amount: string;
+    due_date: string;
+    status: ChargeStatus;
+  },
+): Promise<Charge> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/charges`, {
+    method: "POST",
+    headers: buildTenantHeaders(token, siteId),
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Borç oluşturulamadı (${response.status}): ${text}`);
+  }
+  return (await response.json()) as Charge;
+}
+
+export async function deleteCharge(token: string, siteId: string, chargeId: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/charges/${chargeId}`, {
+    method: "DELETE",
+    headers: buildTenantHeaders(token, siteId, false),
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Borç silinemedi (${response.status}): ${text}`);
+  }
+}
+
+export async function listPayments(
+  token: string,
+  siteId: string,
+  params?: { flat_id?: string },
+): Promise<Payment[]> {
+  const query = new URLSearchParams();
+  if (params?.flat_id) query.set("flat_id", params.flat_id);
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/payments${query.toString() ? `?${query.toString()}` : ""}`,
+    {
+      method: "GET",
+      headers: buildTenantHeaders(token, siteId, false),
+    },
+  );
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Ödemeler alınamadı (${response.status}): ${text}`);
+  }
+  return (await response.json()) as Payment[];
+}
+
+export async function createPayment(
+  token: string,
+  siteId: string,
+  payload: {
+    flat_id: string;
+    amount: string;
+    paid_at: string;
+    method: PaymentMethod;
+    reference_no: string | null;
+    note: string | null;
+  },
+): Promise<Payment> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/payments`, {
+    method: "POST",
+    headers: buildTenantHeaders(token, siteId),
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Ödeme oluşturulamadı (${response.status}): ${text}`);
+  }
+  return (await response.json()) as Payment;
+}
+
+export async function deletePayment(token: string, siteId: string, paymentId: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/payments/${paymentId}`, {
+    method: "DELETE",
+    headers: buildTenantHeaders(token, siteId, false),
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Ödeme silinemedi (${response.status}): ${text}`);
+  }
+}
+
+export async function getFlatLedger(
+  token: string,
+  siteId: string,
+  flatId: string,
+  limit = 10,
+): Promise<FlatLedger> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/ledger/flats/${flatId}?limit=${limit}`, {
+    method: "GET",
+    headers: buildTenantHeaders(token, siteId, false),
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Ekstre alınamadı (${response.status}): ${text}`);
+  }
+  return (await response.json()) as FlatLedger;
 }

@@ -72,14 +72,16 @@ export default function BlocksPage() {
           placeholder="Blok adı"
           value={name}
           onChange={(event) => setName(event.target.value)}
-          className="rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+          className="rounded-lg border border-zinc-300 !bg-white px-3 py-2 text-base font-semibold !text-zinc-900 caret-zinc-900 placeholder:font-medium !placeholder:text-zinc-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+          style={{ colorScheme: "light" }}
           required
         />
         <input
           placeholder="Kod (A, B...)"
           value={code}
           onChange={(event) => setCode(event.target.value)}
-          className="rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+          className="rounded-lg border border-zinc-300 !bg-white px-3 py-2 text-base font-semibold !text-zinc-900 caret-zinc-900 placeholder:font-medium !placeholder:text-zinc-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+          style={{ colorScheme: "light" }}
           required
         />
         <button

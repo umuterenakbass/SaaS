@@ -98,6 +98,24 @@ export default function DashboardPage() {
           >
             Sakin İlişkileri
           </Link>
+          <Link
+            href="/dashboard/charges"
+            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white"
+          >
+            Borç Yönetimi
+          </Link>
+          <Link
+            href="/dashboard/payments"
+            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white"
+          >
+            Ödeme Yönetimi
+          </Link>
+          <Link
+            href="/dashboard/ledger"
+            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white"
+          >
+            Ekstre / Bakiye
+          </Link>
         </section>
 
         <button

@@ -83,7 +83,8 @@ export default function FlatsPage() {
         <select
           value={blockId}
           onChange={(event) => setBlockId(event.target.value)}
-          className="rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+          className="rounded-lg border border-zinc-300 !bg-white px-3 py-2 text-base font-semibold !text-zinc-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+          style={{ colorScheme: "light" }}
         >
           {blocks.map((block) => (
             <option value={block.id} key={block.id}>
@@ -95,7 +96,8 @@ export default function FlatsPage() {
           placeholder="Daire No"
           value={unitNo}
           onChange={(event) => setUnitNo(event.target.value)}
-          className="rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+          className="rounded-lg border border-zinc-300 !bg-white px-3 py-2 text-base font-semibold !text-zinc-900 caret-zinc-900 placeholder:font-medium !placeholder:text-zinc-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+          style={{ colorScheme: "light" }}
           required
         />
         <input
@@ -103,12 +105,14 @@ export default function FlatsPage() {
           placeholder="Kat"
           value={floor}
           onChange={(event) => setFloor(Number(event.target.value))}
-          className="rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+          className="rounded-lg border border-zinc-300 !bg-white px-3 py-2 text-base font-semibold !text-zinc-900 caret-zinc-900 placeholder:font-medium !placeholder:text-zinc-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+          style={{ colorScheme: "light" }}
         />
         <select
           value={status}
           onChange={(event) => setStatus(event.target.value as "active" | "inactive")}
-          className="rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+          className="rounded-lg border border-zinc-300 !bg-white px-3 py-2 text-base font-semibold !text-zinc-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+          style={{ colorScheme: "light" }}
         >
           <option value="active">active</option>
           <option value="inactive">inactive</option>
