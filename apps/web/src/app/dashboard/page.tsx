@@ -116,6 +116,18 @@ export default function DashboardPage() {
           >
             Ekstre / Bakiye
           </Link>
+          <Link
+            href="/dashboard/charge-plans"
+            className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white"
+          >
+            Plan Yönetimi
+          </Link>
+          <Link
+            href="/dashboard/allocations"
+            className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white"
+          >
+            Tahsis Yönetimi
+          </Link>
         </section>
 
         <button

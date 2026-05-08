@@ -13,6 +13,7 @@ from app.db.base import Base, SoftDeleteMixin, TimestampMixin
 
 if TYPE_CHECKING:
     from app.models.flat import Flat
+    from app.models.payment_allocation import PaymentAllocation
 
 
 class ChargeStatus(enum.StrEnum):
@@ -49,3 +50,4 @@ class Charge(Base, TimestampMixin, SoftDeleteMixin):
     )
 
     flat: Mapped[Flat] = relationship(back_populates="charges")
+    allocations: Mapped[list[PaymentAllocation]] = relationship(back_populates="charge")

@@ -12,6 +12,8 @@ class LedgerChargeItem(BaseModel):
     charge_type: str
     period: str
     amount: Decimal
+    allocated_amount: Decimal
+    remaining_amount: Decimal
     due_date: date
     status: ChargeStatus
 
@@ -19,6 +21,8 @@ class LedgerChargeItem(BaseModel):
 class LedgerPaymentItem(BaseModel):
     payment_id: str
     amount: Decimal
+    allocated_amount: Decimal
+    remaining_amount: Decimal
     paid_at: datetime
     method: PaymentMethod
     reference_no: str | None
@@ -29,6 +33,9 @@ class FlatLedgerResponse(BaseModel):
     flat_id: str
     total_charges: Decimal
     total_payments: Decimal
+    allocated_total: Decimal
+    open_charge_total: Decimal
+    unallocated_payment_total: Decimal
     balance: Decimal
     charge_count: int
     payment_count: int

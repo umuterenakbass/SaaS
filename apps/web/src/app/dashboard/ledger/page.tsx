@@ -102,6 +102,21 @@ export default function LedgerPage() {
             </article>
           </section>
 
+          <section className="grid gap-4 md:grid-cols-3">
+            <article className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+              <p className="text-sm text-zinc-500">Tahsis Edilen Toplam</p>
+              <p className="mt-1 text-xl font-semibold text-zinc-900">{ledger.allocated_total} ₺</p>
+            </article>
+            <article className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+              <p className="text-sm text-zinc-500">Açık Borç</p>
+              <p className="mt-1 text-xl font-semibold text-zinc-900">{ledger.open_charge_total} ₺</p>
+            </article>
+            <article className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+              <p className="text-sm text-zinc-500">Tahsis Edilmemiş Ödeme</p>
+              <p className="mt-1 text-xl font-semibold text-zinc-900">{ledger.unallocated_payment_total} ₺</p>
+            </article>
+          </section>
+
           <section className="grid gap-4 md:grid-cols-2">
             <article className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
               <h2 className="text-base font-semibold text-zinc-900">Son Borçlar</h2>
@@ -109,6 +124,9 @@ export default function LedgerPage() {
                 {ledger.recent_charges.map((item) => (
                   <li key={item.charge_id}>
                     {item.period} • {item.charge_type} • {item.amount} ₺ ({item.status})
+                    <span className="block text-xs text-zinc-500">
+                      Tahsis: {item.allocated_amount} ₺ • Kalan: {item.remaining_amount} ₺
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -120,6 +138,9 @@ export default function LedgerPage() {
                 {ledger.recent_payments.map((item) => (
                   <li key={item.payment_id}>
                     {new Date(item.paid_at).toLocaleDateString("tr-TR")} • {item.amount} ₺ • {item.method}
+                    <span className="block text-xs text-zinc-500">
+                      Tahsis: {item.allocated_amount} ₺ • Kalan: {item.remaining_amount} ₺
+                    </span>
                   </li>
                 ))}
               </ul>

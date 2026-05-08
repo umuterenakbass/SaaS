@@ -54,6 +54,7 @@ def test_flat_ledger_summary_and_tenant_guard(client: TestClient) -> None:
         headers=headers,
     )
     assert first_charge_resp.status_code == 201
+    first_charge_id = first_charge_resp.json()["id"]
 
     cancelled_charge_resp = client.post(
         "/api/v1/charges",
@@ -81,6 +82,18 @@ def test_flat_ledger_summary_and_tenant_guard(client: TestClient) -> None:
         headers=headers,
     )
     assert payment_resp.status_code == 201
+    payment_id = payment_resp.json()["id"]
+
+    allocation_resp = client.post(
+        "/api/v1/payment-allocations",
+        json={
+            "payment_id": payment_id,
+            "charge_id": first_charge_id,
+            "allocated_amount": "300.00",
+        },
+        headers=headers,
+    )
+    assert allocation_resp.status_code == 201
 
     ledger_resp = client.get(f"/api/v1/ledger/flats/{flat_id}", headers=headers)
     assert ledger_resp.status_code == 200
@@ -88,11 +101,18 @@ def test_flat_ledger_summary_and_tenant_guard(client: TestClient) -> None:
 
     assert payload["total_charges"] == "1500.00"
     assert payload["total_payments"] == "400.00"
+    assert payload["allocated_total"] == "300.00"
+    assert payload["open_charge_total"] == "1200.00"
+    assert payload["unallocated_payment_total"] == "100.00"
     assert payload["balance"] == "1100.00"
     assert payload["charge_count"] == 1
     assert payload["payment_count"] == 1
     assert len(payload["recent_charges"]) == 1
     assert len(payload["recent_payments"]) == 1
+    assert payload["recent_charges"][0]["allocated_amount"] == "300.00"
+    assert payload["recent_charges"][0]["remaining_amount"] == "1200.00"
+    assert payload["recent_payments"][0]["allocated_amount"] == "300.00"
+    assert payload["recent_payments"][0]["remaining_amount"] == "100.00"
 
     wrong_tenant_resp = client.get(
         f"/api/v1/ledger/flats/{flat_id}",

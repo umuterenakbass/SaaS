@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+  "lint": "eslint src --ext .js,.jsx,.ts,.tsx --cache --cache-location .next/cache/eslint/",
+    "lint:all": "eslint . --cache --cache-location .next/cache/eslint/"
   },
   "dependencies": {
     "next": "16.2.4",

@@ -88,11 +88,52 @@ export type Payment = {
   note: string | null;
 };
 
+export type ChargePlanFrequency = "monthly";
+
+export type ChargePlan = {
+  id: string;
+  site_id: string;
+  name: string;
+  charge_type: string;
+  amount: string;
+  frequency: ChargePlanFrequency;
+  start_period: string;
+  end_period: string | null;
+  is_active: boolean;
+};
+
+export type ChargePlanAssignment = {
+  id: string;
+  site_id: string;
+  charge_plan_id: string;
+  flat_id: string;
+};
+
+export type ChargePlanGenerateResult = {
+  charge_plan_id: string;
+  period: string;
+  requested_assignments: number;
+  created_count: number;
+  skipped_count: number;
+  created_charge_ids: string[];
+};
+
+export type PaymentAllocation = {
+  id: string;
+  site_id: string;
+  payment_id: string;
+  charge_id: string;
+  allocated_amount: string;
+};
+
 export type FlatLedger = {
   site_id: string;
   flat_id: string;
   total_charges: string;
   total_payments: string;
+  allocated_total: string;
+  open_charge_total: string;
+  unallocated_payment_total: string;
   balance: string;
   charge_count: number;
   payment_count: number;
@@ -101,12 +142,16 @@ export type FlatLedger = {
     charge_type: string;
     period: string;
     amount: string;
+    allocated_amount: string;
+    remaining_amount: string;
     due_date: string;
     status: ChargeStatus;
   }>;
   recent_payments: Array<{
     payment_id: string;
     amount: string;
+    allocated_amount: string;
+    remaining_amount: string;
     paid_at: string;
     method: PaymentMethod;
     reference_no: string | null;
@@ -474,4 +519,220 @@ export async function getFlatLedger(
     throw new Error(`Ekstre alınamadı (${response.status}): ${text}`);
   }
   return (await response.json()) as FlatLedger;
+}
+
+export async function listChargePlans(
+  token: string,
+  siteId: string,
+  params?: { is_active?: boolean },
+): Promise<ChargePlan[]> {
+  const query = new URLSearchParams();
+  if (typeof params?.is_active === "boolean") {
+    query.set("is_active", String(params.is_active));
+  }
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/charge-plans${query.toString() ? `?${query.toString()}` : ""}`,
+    {
+      method: "GET",
+      headers: buildTenantHeaders(token, siteId, false),
+    },
+  );
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Planlar alınamadı (${response.status}): ${text}`);
+  }
+  return (await response.json()) as ChargePlan[];
+}
+
+export async function createChargePlan(
+  token: string,
+  siteId: string,
+  payload: {
+    name: string;
+    charge_type: string;
+    amount: string;
+    frequency: ChargePlanFrequency;
+    start_period: string;
+    end_period: string | null;
+    is_active: boolean;
+  },
+): Promise<ChargePlan> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/charge-plans`, {
+    method: "POST",
+    headers: buildTenantHeaders(token, siteId),
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Plan oluşturulamadı (${response.status}): ${text}`);
+  }
+  return (await response.json()) as ChargePlan;
+}
+
+export async function updateChargePlan(
+  token: string,
+  siteId: string,
+  planId: string,
+  payload: {
+    name?: string;
+    charge_type?: string;
+    amount?: string;
+    frequency?: ChargePlanFrequency;
+    start_period?: string;
+    end_period?: string | null;
+    is_active?: boolean;
+  },
+): Promise<ChargePlan> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/charge-plans/${planId}`, {
+    method: "PATCH",
+    headers: buildTenantHeaders(token, siteId),
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Plan güncellenemedi (${response.status}): ${text}`);
+  }
+  return (await response.json()) as ChargePlan;
+}
+
+export async function deleteChargePlan(token: string, siteId: string, planId: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/charge-plans/${planId}`, {
+    method: "DELETE",
+    headers: buildTenantHeaders(token, siteId, false),
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Plan silinemedi (${response.status}): ${text}`);
+  }
+}
+
+export async function listChargePlanAssignments(
+  token: string,
+  siteId: string,
+  planId: string,
+): Promise<ChargePlanAssignment[]> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/charge-plans/${planId}/assignments`, {
+    method: "GET",
+    headers: buildTenantHeaders(token, siteId, false),
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Plan atamaları alınamadı (${response.status}): ${text}`);
+  }
+  return (await response.json()) as ChargePlanAssignment[];
+}
+
+export async function createChargePlanAssignment(
+  token: string,
+  siteId: string,
+  planId: string,
+  payload: { flat_id: string },
+): Promise<ChargePlanAssignment> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/charge-plans/${planId}/assignments`, {
+    method: "POST",
+    headers: buildTenantHeaders(token, siteId),
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Plan ataması oluşturulamadı (${response.status}): ${text}`);
+  }
+  return (await response.json()) as ChargePlanAssignment;
+}
+
+export async function deleteChargePlanAssignment(
+  token: string,
+  siteId: string,
+  planId: string,
+  assignmentId: string,
+): Promise<void> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/charge-plans/${planId}/assignments/${assignmentId}`,
+    {
+      method: "DELETE",
+      headers: buildTenantHeaders(token, siteId, false),
+    },
+  );
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Plan ataması silinemedi (${response.status}): ${text}`);
+  }
+}
+
+export async function generateChargesFromPlan(
+  token: string,
+  siteId: string,
+  planId: string,
+  payload: {
+    period: string;
+    due_date: string;
+    status: ChargeStatus;
+  },
+): Promise<ChargePlanGenerateResult> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/charge-plans/${planId}/generate`, {
+    method: "POST",
+    headers: buildTenantHeaders(token, siteId),
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Plan üretimi başarısız (${response.status}): ${text}`);
+  }
+  return (await response.json()) as ChargePlanGenerateResult;
+}
+
+export async function listPaymentAllocations(
+  token: string,
+  siteId: string,
+  params?: { payment_id?: string; charge_id?: string },
+): Promise<PaymentAllocation[]> {
+  const query = new URLSearchParams();
+  if (params?.payment_id) query.set("payment_id", params.payment_id);
+  if (params?.charge_id) query.set("charge_id", params.charge_id);
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/payment-allocations${query.toString() ? `?${query.toString()}` : ""}`,
+    {
+      method: "GET",
+      headers: buildTenantHeaders(token, siteId, false),
+    },
+  );
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Tahsisler alınamadı (${response.status}): ${text}`);
+  }
+  return (await response.json()) as PaymentAllocation[];
+}
+
+export async function createPaymentAllocation(
+  token: string,
+  siteId: string,
+  payload: { payment_id: string; charge_id: string; allocated_amount: string },
+): Promise<PaymentAllocation> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/payment-allocations`, {
+    method: "POST",
+    headers: buildTenantHeaders(token, siteId),
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Tahsis oluşturulamadı (${response.status}): ${text}`);
+  }
+  return (await response.json()) as PaymentAllocation;
+}
+
+export async function deletePaymentAllocation(
+  token: string,
+  siteId: string,
+  allocationId: string,
+): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/payment-allocations/${allocationId}`, {
+    method: "DELETE",
+    headers: buildTenantHeaders(token, siteId, false),
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Tahsis silinemedi (${response.status}): ${text}`);
+  }
 }
