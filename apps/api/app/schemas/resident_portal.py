@@ -23,6 +23,7 @@ class MyChargeItem(BaseModel):
     amount: Decimal
     due_date: str
     status: str
+    paid_at: str | None = None   # ödeme zamanı (ödendiyse)
 
 
 class MyPaymentItem(BaseModel):
@@ -43,6 +44,13 @@ class MyBalanceSummary(BaseModel):
     balance: Decimal          # pozitif → borçlu, negatif → alacaklı
     pending_count: int        # bekleyen borç sayısı
     overdue_count: int        # vadesi geçmiş borç sayısı
+
+
+class MyPaymentCreate(BaseModel):
+    charge_id: str
+    amount: Decimal
+    method: str = "cash"
+    note: str | None = None
 
 
 class MyNotificationItem(BaseModel):

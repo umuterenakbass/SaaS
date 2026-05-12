@@ -7,11 +7,13 @@ import { useRouter } from "next/navigation";
 import {
   Flat,
   ResidentRelation,
+  UserResponse,
   createResidentRelation,
   deleteResidentRelation,
   fetchCurrentUser,
   listFlats,
   listResidentRelations,
+  listUsers,
 } from "@/lib/api";
 import { getAccessToken, getSiteId } from "@/lib/auth-storage";
 
@@ -22,6 +24,7 @@ export default function ResidentsPage() {
 
   const [relations, setRelations] = useState<ResidentRelation[]>([]);
   const [flats, setFlats] = useState<Flat[]>([]);
+  const [users, setUsers] = useState<UserResponse[]>([]);
   const [userId, setUserId] = useState("");
   const [flatId, setFlatId] = useState("");
   const [relationType, setRelationType] = useState<"owner" | "tenant">("owner");
@@ -41,11 +44,13 @@ export default function ResidentsPage() {
         const me = await fetchCurrentUser(token);
         const loadedFlats = await listFlats(token, siteId);
         const loadedRelations = await listResidentRelations(token, siteId);
+        const loadedUsers = await listUsers(token, siteId);
 
         setUserId(me.id);
         setFlats(loadedFlats);
         setFlatId(loadedFlats[0]?.id ?? "");
         setRelations(loadedRelations);
+        setUsers(loadedUsers);
       } catch (err) {
         setError(err instanceof Error ? err.message : "İlişkiler yüklenemedi.");
       }
@@ -96,13 +101,19 @@ export default function ResidentsPage() {
       </header>
 
       <form onSubmit={handleCreate} className="grid gap-3 rounded-xl bg-white p-4 shadow-sm md:grid-cols-6">
-        <input
+        <select
           value={userId}
           onChange={(event) => setUserId(event.target.value)}
-          placeholder="User ID"
           className="rounded-lg border border-zinc-300 px-3 py-2 text-sm"
           required
-        />
+        >
+          <option value="">Kullanıcı seçin…</option>
+          {users.map((user) => (
+            <option key={user.id} value={user.id}>
+              {user.full_name ? `${user.full_name} (${user.email})` : user.email} — {user.role}
+            </option>
+          ))}
+        </select>
 
         <select
           value={flatId}
@@ -168,7 +179,11 @@ export default function ResidentsPage() {
           >
             <div>
               <p className="font-medium text-zinc-900">
-                {relation.relation_type} | flat: {relation.flat_id.slice(0, 8)} | user: {relation.user_id.slice(0, 8)}
+                {relation.relation_type} | flat: {relation.flat_id.slice(0, 8)} |{" "}
+                {(() => {
+                  const u = users.find((x) => x.id === relation.user_id);
+                  return u ? (u.full_name ?? u.email) : relation.user_id.slice(0, 8);
+                })()}
               </p>
               <p className="text-sm text-zinc-500">
                 {relation.start_date} - {relation.end_date ?? "devam ediyor"}

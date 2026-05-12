@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { MyChargeItem, getMyCharges } from "@/lib/api";
+import { MyChargeItem, getMyCharges, payMyCharge } from "@/lib/api";
 import { getAccessToken, getSiteId } from "@/lib/auth-storage";
 
 export default function ResidentChargesPage() {
@@ -16,6 +16,7 @@ export default function ResidentChargesPage() {
   const [period, setPeriod] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [loading, setLoading] = useState(false);
+  const [paying, setPaying] = useState<string | null>(null); // charge id
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -39,6 +40,25 @@ export default function ResidentChargesPage() {
 
   const statusLabel = (s: string) => ({ pending: "Bekliyor", paid: "Ödendi", cancelled: "İptal" }[s] ?? s);
   const statusColor = (s: string) => ({ pending: "text-amber-700", paid: "text-emerald-700", cancelled: "text-zinc-400" }[s] ?? "");
+
+  const formatDateTime = (iso: string) => {
+    const d = new Date(iso);
+    return d.toLocaleString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  };
+
+  const handlePay = async (charge: MyChargeItem) => {
+    if (!token || !siteId) return;
+    setPaying(charge.id);
+    setError(null);
+    try {
+      await payMyCharge(token, siteId, { charge_id: charge.id, amount: charge.amount, method: "cash" });
+      setCharges(await getMyCharges(token, siteId, period || undefined, statusFilter || undefined));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Ödeme başarısız.");
+    } finally {
+      setPaying(null);
+    }
+  };
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-3xl space-y-6 bg-zinc-50 px-6 py-10">
@@ -89,6 +109,8 @@ export default function ResidentChargesPage() {
                 <th className="px-4 py-3">Tutar</th>
                 <th className="px-4 py-3">Vade</th>
                 <th className="px-4 py-3">Durum</th>
+                <th className="px-4 py-3">Ödeme Zamanı</th>
+                <th className="px-4 py-3">İşlem</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
@@ -97,9 +119,27 @@ export default function ResidentChargesPage() {
                   <td className="px-4 py-3 text-zinc-700">{c.block_name} / {c.unit_no}</td>
                   <td className="px-4 py-3 font-medium text-zinc-900">{c.charge_type}</td>
                   <td className="px-4 py-3 text-zinc-700">{c.period}</td>
-                  <td className="px-4 py-3 text-zinc-700">{c.amount} ₺</td>
+                  <td className="px-4 py-3 font-semibold text-zinc-900">{c.amount} ₺</td>
                   <td className="px-4 py-3 text-zinc-500">{c.due_date}</td>
                   <td className={`px-4 py-3 font-medium ${statusColor(c.status)}`}>{statusLabel(c.status)}</td>
+                  <td className="px-4 py-3 text-sm text-zinc-500">
+                    {c.paid_at ? (
+                      <span className="text-emerald-700">{formatDateTime(c.paid_at)}</span>
+                    ) : (
+                      <span className="text-zinc-300">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {c.status === "pending" ? (
+                      <button
+                        onClick={() => void handlePay(c)}
+                        disabled={paying === c.id}
+                        className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white disabled:bg-zinc-300"
+                      >
+                        {paying === c.id ? "İşleniyor…" : "Ödedim"}
+                      </button>
+                    ) : null}
+                  </td>
                 </tr>
               ))}
             </tbody>

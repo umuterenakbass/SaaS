@@ -19,7 +19,12 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.drop_constraint("uq_flats_block_id_unit_no", "flats", type_="unique")
+    # SQLite does not support DROP CONSTRAINT directly — use batch mode
+    with op.batch_alter_table("flats") as batch_op:
+        try:
+            batch_op.drop_constraint("uq_flats_block_id_unit_no", type_="unique")
+        except Exception:
+            pass  # constraint may not exist in SQLite
     op.create_index(
         "uq_flats_block_id_unit_no_active",
         "flats",

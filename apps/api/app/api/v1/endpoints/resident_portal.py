@@ -9,7 +9,7 @@ from app.db.session import get_db
 from app.models.charge import Charge, ChargeStatus
 from app.models.flat import Flat
 from app.models.notification import Notification
-from app.models.payment import Payment
+from app.models.payment import Payment, PaymentMethod
 from app.models.resident_flat_relation import ResidentFlatRelation
 from app.models.user import User, UserRole
 from app.schemas.resident_portal import (
@@ -17,6 +17,7 @@ from app.schemas.resident_portal import (
     MyChargeItem,
     MyFlatInfo,
     MyNotificationItem,
+    MyPaymentCreate,
     MyPaymentItem,
 )
 
@@ -112,6 +113,18 @@ def my_charges(
     result = []
     for c in charges:
         flat = db.query(Flat).filter(Flat.id == c.flat_id).first()
+        # Bu borca ait ilk ödemeyi bul (en yeni)
+        payment = (
+            db.query(Payment)
+            .filter(
+                Payment.site_id == current_user.site_id,
+                Payment.flat_id == c.flat_id,
+                Payment.note.contains(c.id),
+                Payment.deleted_at.is_(None),
+            )
+            .order_by(Payment.paid_at.desc())
+            .first()
+        )
         result.append(
             MyChargeItem(
                 id=c.id,
@@ -123,6 +136,7 @@ def my_charges(
                 amount=c.amount,
                 due_date=c.due_date.isoformat(),
                 status=c.status,
+                paid_at=payment.paid_at.isoformat() if payment else None,
             )
         )
     return result
@@ -170,6 +184,65 @@ def my_payments(
             )
         )
     return result
+
+
+# ---------------------------------------------------------------------------
+# POST /me/payments  — sakin borcunu ödenmiş olarak işaretler
+# ---------------------------------------------------------------------------
+
+@router.post("/payments", response_model=MyPaymentItem, status_code=status.HTTP_201_CREATED)
+def pay_my_charge(
+    payload: MyPaymentCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_tenant_context),
+    _: User = Depends(_RESIDENT_ONLY),
+) -> MyPaymentItem:
+    flat_ids = _get_my_flat_ids(db, current_user.id, current_user.site_id)
+
+    # Borcu kontrol et
+    charge = db.query(Charge).filter(
+        Charge.id == payload.charge_id,
+        Charge.site_id == current_user.site_id,
+        Charge.flat_id.in_(flat_ids),
+        Charge.deleted_at.is_(None),
+    ).first()
+    if not charge:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Borç bulunamadı.")
+    if charge.status == ChargeStatus.paid:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Bu borç zaten ödendi.")
+    if charge.status == ChargeStatus.cancelled:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="İptal edilmiş borç ödenemez.")
+
+    # Ödeme kaydı oluştur
+    now = datetime.now(UTC)
+    method = PaymentMethod(payload.method) if payload.method in PaymentMethod.__members__ else PaymentMethod.cash
+    payment = Payment(
+        site_id=current_user.site_id,
+        flat_id=charge.flat_id,
+        amount=payload.amount,
+        paid_at=now,
+        method=method,
+        note=f"charge:{charge.id}" + (f" | {payload.note}" if payload.note else ""),
+    )
+    db.add(payment)
+
+    # Borcu ödendi olarak işaretle
+    charge.status = ChargeStatus.paid
+    db.commit()
+    db.refresh(payment)
+
+    flat = db.query(Flat).filter(Flat.id == payment.flat_id).first()
+    return MyPaymentItem(
+        id=payment.id,
+        flat_id=payment.flat_id,
+        unit_no=flat.unit_no if flat else "",
+        block_name=flat.block.name if flat and flat.block else "",
+        amount=payment.amount,
+        paid_at=payment.paid_at.isoformat(),
+        method=payment.method,
+        reference_no=payment.reference_no,
+        note=payment.note,
+    )
 
 
 # ---------------------------------------------------------------------------

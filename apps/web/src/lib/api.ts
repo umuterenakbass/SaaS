@@ -1074,6 +1074,7 @@ export interface MyChargeItem {
   amount: string;
   due_date: string;
   status: string;
+  paid_at: string | null;
 }
 
 export interface MyPaymentItem {
@@ -1136,6 +1137,23 @@ export async function getMyPayments(token: string, siteId: string): Promise<MyPa
   });
   if (!res.ok) throw new Error("Ödemeler yüklenemedi");
   return res.json() as Promise<MyPaymentItem[]>;
+}
+
+export async function payMyCharge(
+  token: string,
+  siteId: string,
+  payload: { charge_id: string; amount: string; method?: string; note?: string },
+): Promise<MyPaymentItem> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/me/payments`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "X-Site-Id": siteId, "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = (await res.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(err.detail ?? `Ödeme başarısız (${res.status})`);
+  }
+  return res.json() as Promise<MyPaymentItem>;
 }
 
 export async function getMyBalance(token: string, siteId: string): Promise<MyBalanceSummary> {
