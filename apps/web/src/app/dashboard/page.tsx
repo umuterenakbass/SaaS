@@ -95,6 +95,12 @@ export default function DashboardPage() {
             Kullanıcı Yönetimi
           </Link>
           <Link
+            href="/dashboard/portal"
+            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white"
+          >
+            Sakin Portalı
+          </Link>
+          <Link
             href="/dashboard/blocks"
             className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white"
           >

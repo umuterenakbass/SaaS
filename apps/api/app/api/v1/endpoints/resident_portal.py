@@ -74,8 +74,8 @@ def my_flats(
                 block_name=flat.block.name if flat.block else "",
                 floor=flat.floor,
                 relation_type=rel.relation_type,
-                move_in_date=rel.move_in_date.isoformat() if rel.move_in_date else None,
-                move_out_date=rel.move_out_date.isoformat() if rel.move_out_date else None,
+                move_in_date=rel.start_date.isoformat() if rel.start_date else None,
+                move_out_date=rel.end_date.isoformat() if rel.end_date else None,
             )
         )
     return result
