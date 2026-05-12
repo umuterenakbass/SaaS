@@ -736,3 +736,87 @@ export async function deletePaymentAllocation(
     throw new Error(`Tahsis silinemedi (${response.status}): ${text}`);
   }
 }
+
+export type NotificationType =
+  | "charge_created"
+  | "payment_received"
+  | "charge_overdue"
+  | "plan_generated";
+
+export type Notification = {
+  id: string;
+  site_id: string;
+  user_id: string | null;
+  notification_type: NotificationType;
+  title: string;
+  body: string;
+  related_flat_id: string | null;
+  related_charge_id: string | null;
+  related_payment_id: string | null;
+  is_read: boolean;
+  created_at: string;
+};
+
+export async function listNotifications(
+  token: string,
+  siteId: string,
+  params?: { is_read?: boolean; limit?: number },
+): Promise<Notification[]> {
+  const query = new URLSearchParams();
+  if (typeof params?.is_read === "boolean") query.set("is_read", String(params.is_read));
+  if (params?.limit) query.set("limit", String(params.limit));
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/notifications${query.toString() ? `?${query.toString()}` : ""}`,
+    { method: "GET", headers: buildTenantHeaders(token, siteId, false) },
+  );
+  if (!response.ok) throw new Error(`Bildirimler alınamadı (${response.status})`);
+  return (await response.json()) as Notification[];
+}
+
+export async function getUnreadCount(token: string, siteId: string): Promise<number> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/notifications/unread-count`, {
+    method: "GET",
+    headers: buildTenantHeaders(token, siteId, false),
+  });
+  if (!response.ok) throw new Error(`Sayım alınamadı (${response.status})`);
+  const data = (await response.json()) as { unread_count: number };
+  return data.unread_count;
+}
+
+export async function markNotificationRead(
+  token: string,
+  siteId: string,
+  notificationId: string,
+): Promise<Notification> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/notifications/${notificationId}/read`,
+    { method: "PATCH", headers: buildTenantHeaders(token, siteId, false) },
+  );
+  if (!response.ok) throw new Error(`Okundu işareti başarısız (${response.status})`);
+  return (await response.json()) as Notification;
+}
+
+export async function markAllNotificationsRead(
+  token: string,
+  siteId: string,
+): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/notifications/read-all`, {
+    method: "PATCH",
+    headers: buildTenantHeaders(token, siteId, false),
+  });
+  if (!response.ok) throw new Error(`Tümünü okundu işaretleme başarısız (${response.status})`);
+}
+
+export async function triggerOverdueNotifications(
+  token: string,
+  siteId: string,
+): Promise<number> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/notifications/trigger-overdue`, {
+    method: "POST",
+    headers: buildTenantHeaders(token, siteId, false),
+  });
+  if (!response.ok) throw new Error(`Vade tetikleyici başarısız (${response.status})`);
+  const data = (await response.json()) as { unread_count: number };
+  return data.unread_count;
+}

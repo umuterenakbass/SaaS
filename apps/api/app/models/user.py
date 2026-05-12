@@ -10,6 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base, SoftDeleteMixin, TimestampMixin
 
 if TYPE_CHECKING:
+    from app.models.notification import Notification
     from app.models.site import Site
 
 
@@ -35,3 +36,4 @@ class User(Base, TimestampMixin, SoftDeleteMixin):
     is_active: Mapped[bool] = mapped_column(default=True)
 
     site: Mapped[Site] = relationship(back_populates="users")
+    notifications: Mapped[list[Notification]] = relationship(back_populates="user")

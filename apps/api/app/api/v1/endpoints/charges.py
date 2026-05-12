@@ -10,6 +10,7 @@ from app.models.charge import Charge
 from app.models.flat import Flat
 from app.models.user import User, UserRole
 from app.schemas.charge import ChargeCreateRequest, ChargeResponse, ChargeUpdateRequest
+from app.services import notification_service
 
 router = APIRouter(prefix="/charges", tags=["charges"])
 
@@ -83,6 +84,18 @@ def create_charge(
         db.rollback()
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Charge already exists") from None
     db.refresh(charge)
+
+    notification_service.notify_charge_created(
+        db,
+        site_id=current_user.site_id,
+        flat_id=charge.flat_id,
+        charge_id=charge.id,
+        charge_type=charge.charge_type,
+        period=charge.period,
+        amount=str(charge.amount),
+        user_id=current_user.id,
+    )
+    db.commit()
 
     return ChargeResponse.model_validate(charge, from_attributes=True)
 

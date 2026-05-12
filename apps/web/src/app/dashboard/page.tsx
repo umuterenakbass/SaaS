@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { fetchCurrentUser, fetchTenantContext } from "@/lib/api";
+import { fetchCurrentUser, fetchTenantContext, getUnreadCount } from "@/lib/api";
 import { clearSession, getAccessToken, getSiteId } from "@/lib/auth-storage";
 
 export default function DashboardPage() {
@@ -14,6 +14,7 @@ export default function DashboardPage() {
   const [userEmail, setUserEmail] = useState<string>("");
   const [siteId, setSiteId] = useState<string>("");
   const [role, setRole] = useState<string>("");
+  const [unreadCount, setUnreadCount] = useState<number>(0);
 
   useEffect(() => {
     const run = async () => {
@@ -32,6 +33,13 @@ export default function DashboardPage() {
         setUserEmail(me.email);
         setSiteId(tenant.site_id);
         setRole(tenant.role);
+
+        try {
+          const count = await getUnreadCount(token, storedSiteId);
+          setUnreadCount(count);
+        } catch {
+          // bildirim sayısı hata versese dashboard yüklenmesin diye bloke etme
+        }
       } catch (err) {
         clearSession();
         setError(err instanceof Error ? err.message : "Dashboard yüklenemedi.");
@@ -127,6 +135,17 @@ export default function DashboardPage() {
             className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white"
           >
             Tahsis Yönetimi
+          </Link>
+          <Link
+            href="/dashboard/notifications"
+            className="relative rounded-lg bg-zinc-700 px-4 py-2 text-sm font-medium text-white"
+          >
+            Bildirimler
+            {unreadCount > 0 && (
+              <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-xs font-bold text-white">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            )}
           </Link>
         </section>
 

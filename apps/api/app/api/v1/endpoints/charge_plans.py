@@ -19,6 +19,7 @@ from app.schemas.charge_plan import (
     ChargePlanResponse,
     ChargePlanUpdateRequest,
 )
+from app.services import notification_service
 
 router = APIRouter(prefix="/charge-plans", tags=["charge-plans"])
 
@@ -288,6 +289,17 @@ def generate_charges_for_plan(
         db.flush()
         created_charge_ids.append(charge.id)
 
+    db.commit()
+
+    notification_service.notify_plan_generated(
+        db,
+        site_id=current_user.site_id,
+        plan_name=plan.name,
+        period=payload.period,
+        created_count=len(created_charge_ids),
+        skipped_count=skipped_count,
+        user_id=current_user.id,
+    )
     db.commit()
 
     return ChargePlanGenerateResponse(

@@ -9,6 +9,7 @@ from app.models.flat import Flat
 from app.models.payment import Payment
 from app.models.user import User, UserRole
 from app.schemas.payment import PaymentCreateRequest, PaymentResponse, PaymentUpdateRequest
+from app.services import notification_service
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 
@@ -58,6 +59,17 @@ def create_payment(
     db.add(payment)
     db.commit()
     db.refresh(payment)
+
+    notification_service.notify_payment_received(
+        db,
+        site_id=current_user.site_id,
+        flat_id=payment.flat_id,
+        payment_id=payment.id,
+        amount=str(payment.amount),
+        method=str(payment.method),
+        user_id=current_user.id,
+    )
+    db.commit()
 
     return PaymentResponse.model_validate(payment, from_attributes=True)
 
