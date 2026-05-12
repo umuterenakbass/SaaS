@@ -61,7 +61,7 @@ def period_summary(
         db.query(Payment)
         .filter(
             Payment.site_id == site_id,
-            func.to_char(Payment.paid_at, "YYYY-MM") == period,
+            func.strftime("%Y-%m", Payment.paid_at) == period,
             Payment.deleted_at.is_(None),
         )
         .all()
@@ -167,7 +167,7 @@ def flat_summary(
         )
         if period:
             payment_q = payment_q.filter(
-                func.to_char(Payment.paid_at, "YYYY-MM") == period
+                func.strftime("%Y-%m", Payment.paid_at) == period
             )
         flat_payments = payment_q.all()
 
@@ -253,7 +253,7 @@ def export_payments_csv(
 
     q = db.query(Payment).filter(Payment.site_id == site_id, Payment.deleted_at.is_(None))
     if period:
-        q = q.filter(func.to_char(Payment.paid_at, "YYYY-MM") == period)
+        q = q.filter(func.strftime("%Y-%m", Payment.paid_at) == period)
     if flat_id:
         q = q.filter(Payment.flat_id == flat_id)
 

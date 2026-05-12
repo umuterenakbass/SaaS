@@ -16,6 +16,7 @@ from app.api.v1.endpoints.resident_portal import router as resident_portal_route
 from app.api.v1.endpoints.resident_relations import router as resident_relations_router
 from app.api.v1.endpoints.scheduled_charges import router as scheduled_charges_router
 from app.api.v1.endpoints.tenant import router as tenant_router
+from app.api.v1.endpoints.user_mgmt import router as user_mgmt_router
 
 api_router_v1 = APIRouter()
 api_router_v1.include_router(health_router, tags=["health"])
@@ -34,3 +35,4 @@ api_router_v1.include_router(reports_router)
 api_router_v1.include_router(resident_portal_router)
 api_router_v1.include_router(resident_relations_router)
 api_router_v1.include_router(scheduled_charges_router)
+api_router_v1.include_router(user_mgmt_router)

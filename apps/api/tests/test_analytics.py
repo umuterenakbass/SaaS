@@ -9,7 +9,7 @@ def _setup(client: TestClient, email: str) -> tuple[str, str, str, str]:
     """Admin kayıt + blok + 3 daire. (token, site_id, flat_id1, flat_id2)"""
     reg = client.post(
         "/api/v1/auth/register",
-        json={"site_name": "Analytics Site", "full_name": "Admin", "email": email, "password": "StrongPass123"},
+        json={"site_name": f"Analytics Site {email}", "full_name": "Admin", "email": email, "password": "StrongPass123"},
     )
     assert reg.status_code == 201
     site_id = reg.json()["site_id"]

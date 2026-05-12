@@ -1215,3 +1215,91 @@ export async function getMonthlyTrend(
   if (!res.ok) throw new Error("Trend verisi yüklenemedi");
   return res.json() as Promise<MonthlyTrendItem[]>;
 }
+
+// ---------------------------------------------------------------------------
+// User Management
+// ---------------------------------------------------------------------------
+
+export type UserRole = "manager" | "accountant" | "resident";
+
+export type UserResponse = {
+  id: string;
+  email: string;
+  full_name: string;
+  role: string;
+  is_active: boolean;
+  site_id: string;
+};
+
+export type UserCreatePayload = {
+  email: string;
+  full_name: string;
+  password: string;
+  role: UserRole;
+};
+
+export type UserUpdatePayload = {
+  full_name?: string;
+  role?: UserRole;
+  is_active?: boolean;
+};
+
+export async function listUsers(token: string, siteId: string): Promise<UserResponse[]> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/users`, {
+    headers: { Authorization: `Bearer ${token}`, "X-Site-Id": siteId },
+  });
+  if (!res.ok) throw new Error("Kullanıcılar yüklenemedi");
+  return res.json() as Promise<UserResponse[]>;
+}
+
+export async function createUser(
+  token: string,
+  siteId: string,
+  payload: UserCreatePayload,
+): Promise<UserResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/users`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "X-Site-Id": siteId,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { detail?: string }).detail ?? "Kullanıcı oluşturulamadı");
+  }
+  return res.json() as Promise<UserResponse>;
+}
+
+export async function updateUser(
+  token: string,
+  siteId: string,
+  userId: string,
+  payload: UserUpdatePayload,
+): Promise<UserResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/users/${userId}`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "X-Site-Id": siteId,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error("Kullanıcı güncellenemedi");
+  return res.json() as Promise<UserResponse>;
+}
+
+export async function deleteUser(
+  token: string,
+  siteId: string,
+  userId: string,
+): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/users/${userId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}`, "X-Site-Id": siteId },
+  });
+  if (!res.ok) throw new Error("Kullanıcı silinemedi");
+}

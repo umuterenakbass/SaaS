@@ -6,7 +6,7 @@ def _setup(client: TestClient, email: str) -> tuple[str, str, str, str, str]:
     reg = client.post(
         "/api/v1/auth/register",
         json={
-            "site_name": "Notif Site",
+            "site_name": f"Notif Site {email}",
             "full_name": "Admin",
             "email": email,
             "password": "StrongPass123",
