@@ -48,6 +48,10 @@ export default function BulkChargePage() {
         due_date: dueDate,
       });
       setResult(res);
+      // Hata yoksa 2 saniye sonra borç yönetimine yönlendir
+      if (res.errors.length === 0) {
+        setTimeout(() => router.push("/dashboard/charges"), 2000);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Hata oluştu.");
     } finally {
@@ -166,6 +170,17 @@ export default function BulkChargePage() {
               ))}
             </ul>
           )}
+          <div className="flex items-center gap-3 pt-2">
+            <button
+              onClick={() => router.push("/dashboard/charges")}
+              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white"
+            >
+              Borç Yönetimine Git →
+            </button>
+            {result.errors.length === 0 && (
+              <p className="text-xs text-emerald-700">Yönlendiriliyor...</p>
+            )}
+          </div>
         </section>
       ) : null}
     </main>
