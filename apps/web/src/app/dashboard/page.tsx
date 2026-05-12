@@ -148,6 +148,12 @@ export default function DashboardPage() {
             )}
           </Link>
           <Link
+            href="/dashboard/analytics"
+            className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white"
+          >
+            Analytics
+          </Link>
+          <Link
             href="/dashboard/reports"
             className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white"
           >

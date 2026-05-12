@@ -1158,3 +1158,60 @@ export async function getMyNotifications(
   if (!res.ok) throw new Error("Bildirimler yüklenemedi");
   return res.json() as Promise<MyNotificationItem[]>;
 }
+
+// ---------------------------------------------------------------------------
+// Sprint 10 — Analytics
+// ---------------------------------------------------------------------------
+
+export interface MonthlyTrendItem {
+  period: string;
+  total_charges: string;
+  total_payments: string;
+  collection_rate: string;
+}
+
+export interface FlatOccupancyStats {
+  total_flats: number;
+  active_flats: number;
+  occupied_flats: number;
+  vacant_flats: number;
+}
+
+export interface ChargeTypeBreakdownItem {
+  charge_type: string;
+  total_amount: string;
+  charge_count: number;
+}
+
+export interface AnalyticsDashboardResponse {
+  monthly_trend: MonthlyTrendItem[];
+  occupancy: FlatOccupancyStats;
+  charge_type_breakdown: ChargeTypeBreakdownItem[];
+  avg_collection_rate: string;
+}
+
+export async function getAnalyticsDashboard(
+  token: string,
+  siteId: string,
+  months = 12,
+): Promise<AnalyticsDashboardResponse> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/v1/analytics/dashboard?months=${months}`,
+    { headers: { Authorization: `Bearer ${token}`, "X-Site-Id": siteId } },
+  );
+  if (!res.ok) throw new Error("Analytics yüklenemedi");
+  return res.json() as Promise<AnalyticsDashboardResponse>;
+}
+
+export async function getMonthlyTrend(
+  token: string,
+  siteId: string,
+  months = 12,
+): Promise<MonthlyTrendItem[]> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/v1/analytics/monthly-trend?months=${months}`,
+    { headers: { Authorization: `Bearer ${token}`, "X-Site-Id": siteId } },
+  );
+  if (!res.ok) throw new Error("Trend verisi yüklenemedi");
+  return res.json() as Promise<MonthlyTrendItem[]>;
+}

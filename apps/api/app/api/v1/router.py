@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from app.api.v1.endpoints.analytics import router as analytics_router
 from app.api.v1.endpoints.auth import router as auth_router
 from app.api.v1.endpoints.blocks import router as blocks_router
 from app.api.v1.endpoints.charges import router as charges_router
@@ -18,6 +19,7 @@ from app.api.v1.endpoints.tenant import router as tenant_router
 
 api_router_v1 = APIRouter()
 api_router_v1.include_router(health_router, tags=["health"])
+api_router_v1.include_router(analytics_router)
 api_router_v1.include_router(auth_router)
 api_router_v1.include_router(tenant_router)
 api_router_v1.include_router(blocks_router)
