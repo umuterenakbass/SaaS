@@ -153,6 +153,18 @@ export default function DashboardPage() {
           >
             Raporlar
           </Link>
+          <Link
+            href="/dashboard/bulk-charge"
+            className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white"
+          >
+            Toplu Borç
+          </Link>
+          <Link
+            href="/dashboard/scheduled-charges"
+            className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white"
+          >
+            Otomatik Kurallar
+          </Link>
         </section>
 
         <button

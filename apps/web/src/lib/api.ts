@@ -900,3 +900,152 @@ export function buildCsvExportUrl(
   if (flatId) query.set("flat_id", flatId);
   return `${API_BASE_URL}/api/v1/reports/export/${type}${query.toString() ? `?${query.toString()}` : ""}`;
 }
+
+// ---------------------------------------------------------------------------
+// Sprint 8 — Bulk Charge & Scheduled Charges
+// ---------------------------------------------------------------------------
+
+export interface BulkChargeRequest {
+  flat_ids?: string[];
+  charge_type: string;
+  period: string;
+  amount: string;
+  due_date: string;
+  status?: string;
+}
+
+export interface BulkChargeResult {
+  created: number;
+  skipped: number;
+  errors: string[];
+}
+
+export interface ScheduledCharge {
+  id: string;
+  site_id: string;
+  charge_type: string;
+  amount: string;
+  day_of_month: number;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ScheduledChargeRunResult {
+  period: string;
+  created: number;
+  skipped: number;
+  errors: string[];
+}
+
+export async function bulkCreateCharges(
+  token: string,
+  siteId: string,
+  payload: BulkChargeRequest,
+): Promise<BulkChargeResult> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/charges/bulk`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      "X-Site-Id": siteId,
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { detail?: string }).detail ?? "Toplu borç oluşturulamadı");
+  }
+  return res.json() as Promise<BulkChargeResult>;
+}
+
+export async function getScheduledCharges(
+  token: string,
+  siteId: string,
+): Promise<ScheduledCharge[]> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/scheduled-charges`, {
+    headers: { Authorization: `Bearer ${token}`, "X-Site-Id": siteId },
+  });
+  if (!res.ok) throw new Error("Zamanlanmış kurallar yüklenemedi");
+  return res.json() as Promise<ScheduledCharge[]>;
+}
+
+export async function createScheduledCharge(
+  token: string,
+  siteId: string,
+  payload: { charge_type: string; amount: string; day_of_month: number; active?: boolean },
+): Promise<ScheduledCharge> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/scheduled-charges`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      "X-Site-Id": siteId,
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { detail?: string }).detail ?? "Kural oluşturulamadı");
+  }
+  return res.json() as Promise<ScheduledCharge>;
+}
+
+export async function updateScheduledCharge(
+  token: string,
+  siteId: string,
+  scId: string,
+  payload: Partial<{ charge_type: string; amount: string; day_of_month: number; active: boolean }>,
+): Promise<ScheduledCharge> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/scheduled-charges/${scId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      "X-Site-Id": siteId,
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { detail?: string }).detail ?? "Kural güncellenemedi");
+  }
+  return res.json() as Promise<ScheduledCharge>;
+}
+
+export async function deleteScheduledCharge(
+  token: string,
+  siteId: string,
+  scId: string,
+): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/scheduled-charges/${scId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}`, "X-Site-Id": siteId },
+  });
+  if (!res.ok) throw new Error("Kural silinemedi");
+}
+
+export async function runScheduledCharge(
+  token: string,
+  siteId: string,
+  scId: string,
+): Promise<ScheduledChargeRunResult> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/scheduled-charges/${scId}/run`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "X-Site-Id": siteId },
+  });
+  if (!res.ok) throw new Error("Kural çalıştırılamadı");
+  return res.json() as Promise<ScheduledChargeRunResult>;
+}
+
+export async function runAllScheduledCharges(
+  token: string,
+  siteId: string,
+): Promise<ScheduledChargeRunResult[]> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/scheduled-charges/run-all`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "X-Site-Id": siteId },
+  });
+  if (!res.ok) throw new Error("Kurallar çalıştırılamadı");
+  return res.json() as Promise<ScheduledChargeRunResult[]>;
+}

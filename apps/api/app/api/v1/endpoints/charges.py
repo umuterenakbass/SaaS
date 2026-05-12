@@ -9,6 +9,7 @@ from app.db.session import get_db
 from app.models.charge import Charge
 from app.models.flat import Flat
 from app.models.user import User, UserRole
+from app.schemas.bulk import BulkChargeRequest, BulkChargeResult
 from app.schemas.charge import ChargeCreateRequest, ChargeResponse, ChargeUpdateRequest
 from app.services import notification_service
 
@@ -193,3 +194,71 @@ def delete_charge(
 
     charge.deleted_at = datetime.now(UTC)
     db.commit()
+
+
+@router.post("/bulk", response_model=BulkChargeResult, status_code=status.HTTP_200_OK)
+def bulk_create_charges(
+    payload: BulkChargeRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_tenant_context),
+    _: User = Depends(require_roles({UserRole.admin, UserRole.manager, UserRole.accountant})),
+) -> BulkChargeResult:
+    """Tüm aktif dairelere veya seçili flat_ids listesine toplu borç oluştur."""
+
+    # Hedef daireleri belirle
+    flat_query = db.query(Flat).filter(
+        Flat.site_id == current_user.site_id,
+        Flat.deleted_at.is_(None),
+        Flat.status == "active",
+    )
+    if payload.flat_ids:
+        flat_query = flat_query.filter(Flat.id.in_(payload.flat_ids))
+    flats = flat_query.all()
+
+    # flat_ids verilmişse, DB'de bulunamayanları hata olarak raporla
+    found_ids = {f.id for f in flats}
+    errors: list[str] = []
+    if payload.flat_ids:
+        for fid in payload.flat_ids:
+            if fid not in found_ids:
+                errors.append(f"flat_id={fid} bulunamadı veya bu siteye ait değil")
+
+    created = 0
+    skipped = 0
+
+    for flat in flats:
+        # Duplicate kontrolü
+        existing = (
+            db.query(Charge)
+            .filter(
+                Charge.flat_id == flat.id,
+                Charge.period == payload.period,
+                Charge.charge_type == payload.charge_type,
+                Charge.deleted_at.is_(None),
+            )
+            .first()
+        )
+        if existing:
+            skipped += 1
+            continue
+
+        charge = Charge(
+            site_id=current_user.site_id,
+            flat_id=flat.id,
+            charge_type=payload.charge_type.strip(),
+            period=payload.period,
+            amount=payload.amount,
+            due_date=payload.due_date,
+            status=payload.status,
+        )
+        db.add(charge)
+        try:
+            db.flush()  # ID üret, ama henüz commit etme
+            created += 1
+        except IntegrityError:
+            db.rollback()
+            skipped += 1
+            continue
+
+    db.commit()
+    return BulkChargeResult(created=created, skipped=skipped, errors=errors)
