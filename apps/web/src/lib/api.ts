@@ -1049,3 +1049,112 @@ export async function runAllScheduledCharges(
   if (!res.ok) throw new Error("Kurallar çalıştırılamadı");
   return res.json() as Promise<ScheduledChargeRunResult[]>;
 }
+
+// ---------------------------------------------------------------------------
+// Sprint 9 — Resident Portal
+// ---------------------------------------------------------------------------
+
+export interface MyFlatInfo {
+  flat_id: string;
+  unit_no: string;
+  block_name: string;
+  floor: number;
+  relation_type: string;
+  move_in_date: string | null;
+  move_out_date: string | null;
+}
+
+export interface MyChargeItem {
+  id: string;
+  flat_id: string;
+  unit_no: string;
+  block_name: string;
+  charge_type: string;
+  period: string;
+  amount: string;
+  due_date: string;
+  status: string;
+}
+
+export interface MyPaymentItem {
+  id: string;
+  flat_id: string;
+  unit_no: string;
+  block_name: string;
+  amount: string;
+  paid_at: string;
+  method: string;
+  reference_no: string | null;
+  note: string | null;
+}
+
+export interface MyBalanceSummary {
+  total_charges: string;
+  total_payments: string;
+  balance: string;
+  pending_count: number;
+  overdue_count: number;
+}
+
+export interface MyNotificationItem {
+  id: string;
+  notification_type: string;
+  title: string;
+  body: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+export async function getMyFlats(token: string, siteId: string): Promise<MyFlatInfo[]> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/me/flats`, {
+    headers: { Authorization: `Bearer ${token}`, "X-Site-Id": siteId },
+  });
+  if (!res.ok) throw new Error("Daireler yüklenemedi");
+  return res.json() as Promise<MyFlatInfo[]>;
+}
+
+export async function getMyCharges(
+  token: string,
+  siteId: string,
+  period?: string,
+  chargeStatus?: string,
+): Promise<MyChargeItem[]> {
+  const q = new URLSearchParams();
+  if (period) q.set("period", period);
+  if (chargeStatus) q.set("status", chargeStatus);
+  const res = await fetch(
+    `${API_BASE_URL}/api/v1/me/charges${q.toString() ? `?${q.toString()}` : ""}`,
+    { headers: { Authorization: `Bearer ${token}`, "X-Site-Id": siteId } },
+  );
+  if (!res.ok) throw new Error("Borçlar yüklenemedi");
+  return res.json() as Promise<MyChargeItem[]>;
+}
+
+export async function getMyPayments(token: string, siteId: string): Promise<MyPaymentItem[]> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/me/payments`, {
+    headers: { Authorization: `Bearer ${token}`, "X-Site-Id": siteId },
+  });
+  if (!res.ok) throw new Error("Ödemeler yüklenemedi");
+  return res.json() as Promise<MyPaymentItem[]>;
+}
+
+export async function getMyBalance(token: string, siteId: string): Promise<MyBalanceSummary> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/me/balance`, {
+    headers: { Authorization: `Bearer ${token}`, "X-Site-Id": siteId },
+  });
+  if (!res.ok) throw new Error("Bakiye yüklenemedi");
+  return res.json() as Promise<MyBalanceSummary>;
+}
+
+export async function getMyNotifications(
+  token: string,
+  siteId: string,
+  unreadOnly = false,
+): Promise<MyNotificationItem[]> {
+  const q = unreadOnly ? "?unread_only=true" : "";
+  const res = await fetch(`${API_BASE_URL}/api/v1/me/notifications${q}`, {
+    headers: { Authorization: `Bearer ${token}`, "X-Site-Id": siteId },
+  });
+  if (!res.ok) throw new Error("Bildirimler yüklenemedi");
+  return res.json() as Promise<MyNotificationItem[]>;
+}

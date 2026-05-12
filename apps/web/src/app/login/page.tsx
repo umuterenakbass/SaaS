@@ -23,8 +23,13 @@ export default function LoginPage() {
       const loginResponse = await loginWithPassword(email, password);
       const me = await fetchCurrentUser(loginResponse.access_token);
 
-      saveSession(loginResponse.access_token, me.site_id);
-      router.push("/dashboard");
+      saveSession(loginResponse.access_token, me.site_id, me.role);
+
+      if (me.role === "resident") {
+        router.push("/resident");
+      } else {
+        router.push("/dashboard");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Giriş sırasında bir hata oluştu.");
     } finally {
