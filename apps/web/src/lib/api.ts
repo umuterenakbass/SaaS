@@ -820,3 +820,83 @@ export async function triggerOverdueNotifications(
   const data = (await response.json()) as { unread_count: number };
   return data.unread_count;
 }
+
+// ── Reports ──────────────────────────────────────────────────────────────────
+
+export type PeriodChargeSummary = {
+  charge_type: string;
+  charge_count: number;
+  total_amount: string;
+  paid_amount: string;
+  pending_amount: string;
+  cancelled_amount: string;
+};
+
+export type PeriodSummaryReport = {
+  site_id: string;
+  period: string;
+  total_charges: string;
+  total_payments: string;
+  total_allocated: string;
+  collection_rate: string;
+  charge_count: number;
+  payment_count: number;
+  by_charge_type: PeriodChargeSummary[];
+};
+
+export type FlatSummaryItem = {
+  flat_id: string;
+  unit_no: string;
+  block_name: string;
+  total_charges: string;
+  total_payments: string;
+  balance: string;
+  pending_charge_count: number;
+  overdue_charge_count: number;
+};
+
+export type FlatSummaryReport = {
+  site_id: string;
+  period: string | null;
+  flat_count: number;
+  items: FlatSummaryItem[];
+};
+
+export async function getPeriodSummary(
+  token: string,
+  siteId: string,
+  period: string,
+): Promise<PeriodSummaryReport> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/reports/period-summary?period=${encodeURIComponent(period)}`,
+    { method: "GET", headers: buildTenantHeaders(token, siteId, false) },
+  );
+  if (!response.ok) throw new Error(`Dönem özeti alınamadı (${response.status})`);
+  return (await response.json()) as PeriodSummaryReport;
+}
+
+export async function getFlatSummary(
+  token: string,
+  siteId: string,
+  period?: string,
+): Promise<FlatSummaryReport> {
+  const query = period ? `?period=${encodeURIComponent(period)}` : "";
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/reports/flat-summary${query}`,
+    { method: "GET", headers: buildTenantHeaders(token, siteId, false) },
+  );
+  if (!response.ok) throw new Error(`Daire özeti alınamadı (${response.status})`);
+  return (await response.json()) as FlatSummaryReport;
+}
+
+export function buildCsvExportUrl(
+  type: "charges" | "payments",
+  siteId: string,
+  period?: string,
+  flatId?: string,
+): string {
+  const query = new URLSearchParams();
+  if (period) query.set("period", period);
+  if (flatId) query.set("flat_id", flatId);
+  return `${API_BASE_URL}/api/v1/reports/export/${type}${query.toString() ? `?${query.toString()}` : ""}`;
+}

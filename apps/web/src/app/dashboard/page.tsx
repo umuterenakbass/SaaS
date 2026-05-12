@@ -147,6 +147,12 @@ export default function DashboardPage() {
               </span>
             )}
           </Link>
+          <Link
+            href="/dashboard/reports"
+            className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white"
+          >
+            Raporlar
+          </Link>
         </section>
 
         <button

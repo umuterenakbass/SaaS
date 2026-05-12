@@ -10,6 +10,7 @@ from app.api.v1.endpoints.ledger import router as ledger_router
 from app.api.v1.endpoints.notifications import router as notifications_router
 from app.api.v1.endpoints.payment_allocations import router as payment_allocations_router
 from app.api.v1.endpoints.payments import router as payments_router
+from app.api.v1.endpoints.reports import router as reports_router
 from app.api.v1.endpoints.resident_relations import router as resident_relations_router
 from app.api.v1.endpoints.tenant import router as tenant_router
 
@@ -25,4 +26,5 @@ api_router_v1.include_router(payments_router)
 api_router_v1.include_router(payment_allocations_router)
 api_router_v1.include_router(ledger_router)
 api_router_v1.include_router(notifications_router)
+api_router_v1.include_router(reports_router)
 api_router_v1.include_router(resident_relations_router)
