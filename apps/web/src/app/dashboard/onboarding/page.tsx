@@ -8,14 +8,14 @@ import {
   type OnboardingSetupResult,
   runOnboardingSetup,
 } from "@/lib/api";
+import { getAccessToken, getSiteId } from "@/lib/auth-storage";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function getAuth() {
-  if (typeof window === "undefined") return { token: "", siteId: "" };
   return {
-    token: localStorage.getItem("token") ?? "",
-    siteId: localStorage.getItem("site_id") ?? "",
+    token: getAccessToken() ?? "",
+    siteId: getSiteId() ?? "",
   };
 }
 
