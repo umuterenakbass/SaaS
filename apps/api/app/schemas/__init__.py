@@ -1,3 +1,4 @@
+from app.schemas.announcement import AnnouncementCreate, AnnouncementResponse, AnnouncementUpdate
 from app.schemas.auth import CurrentUserResponse, LoginResponse, RegisterRequest
 from app.schemas.block import BlockCreateRequest, BlockResponse, BlockUpdateRequest
 from app.schemas.charge import ChargeCreateRequest, ChargeResponse, ChargeUpdateRequest
@@ -12,6 +13,7 @@ from app.schemas.charge_plan import (
 )
 from app.schemas.flat import FlatCreateRequest, FlatResponse, FlatUpdateRequest
 from app.schemas.ledger import FlatLedgerResponse, LedgerChargeItem, LedgerPaymentItem
+from app.schemas.maintenance_request import MaintenanceRequestCreate, MaintenanceRequestResponse, MaintenanceRequestUpdate
 from app.schemas.payment_allocation import PaymentAllocationCreateRequest, PaymentAllocationResponse
 from app.schemas.payment import PaymentCreateRequest, PaymentResponse, PaymentUpdateRequest
 from app.schemas.resident_flat_relation import (

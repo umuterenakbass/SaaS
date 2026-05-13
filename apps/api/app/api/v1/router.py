@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.api.v1.endpoints.analytics import router as analytics_router
+from app.api.v1.endpoints.announcements import router as announcements_router
 from app.api.v1.endpoints.auth import router as auth_router
 from app.api.v1.endpoints.blocks import router as blocks_router
 from app.api.v1.endpoints.charges import router as charges_router
@@ -9,6 +10,7 @@ from app.api.v1.endpoints.flats import router as flats_router
 from app.api.v1.endpoints.health import router as health_router
 from app.api.v1.endpoints.installments import router as installments_router
 from app.api.v1.endpoints.ledger import router as ledger_router
+from app.api.v1.endpoints.maintenance_requests import router as maintenance_requests_router
 from app.api.v1.endpoints.notifications import router as notifications_router
 from app.api.v1.endpoints.onboarding import router as onboarding_router
 from app.api.v1.endpoints.payment_allocations import router as payment_allocations_router
@@ -23,6 +25,7 @@ from app.api.v1.endpoints.user_mgmt import router as user_mgmt_router
 api_router_v1 = APIRouter()
 api_router_v1.include_router(health_router, tags=["health"])
 api_router_v1.include_router(analytics_router)
+api_router_v1.include_router(announcements_router)
 api_router_v1.include_router(auth_router)
 api_router_v1.include_router(tenant_router)
 api_router_v1.include_router(blocks_router)
@@ -30,6 +33,7 @@ api_router_v1.include_router(charge_plans_router)
 api_router_v1.include_router(flats_router)
 api_router_v1.include_router(charges_router)
 api_router_v1.include_router(installments_router)
+api_router_v1.include_router(maintenance_requests_router)
 api_router_v1.include_router(payments_router)
 api_router_v1.include_router(payment_allocations_router)
 api_router_v1.include_router(ledger_router)

@@ -1557,3 +1557,178 @@ export async function getTodayActions(
   return res.json() as Promise<TodayActionsResponse>;
 }
 
+// ---------------------------------------------------------------------------
+// Announcements
+// ---------------------------------------------------------------------------
+
+export interface Announcement {
+  id: string;
+  site_id: string;
+  created_by: string | null;
+  title: string;
+  body: string;
+  block_id: string | null;
+  is_pinned: boolean;
+  is_published: boolean;
+  created_at: string;
+}
+
+export interface AnnouncementCreate {
+  title: string;
+  body: string;
+  block_id?: string | null;
+  is_pinned?: boolean;
+  is_published?: boolean;
+}
+
+export async function listAnnouncements(token: string, siteId: string): Promise<Announcement[]> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/announcements`, {
+    headers: { Authorization: `Bearer ${token}`, "X-Site-Id": siteId },
+  });
+  if (!res.ok) throw new Error("Duyurular yüklenemedi");
+  return res.json() as Promise<Announcement[]>;
+}
+
+export async function createAnnouncement(
+  token: string,
+  siteId: string,
+  payload: AnnouncementCreate,
+): Promise<Announcement> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/announcements`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "X-Site-Id": siteId,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Duyuru oluşturulamadı (${res.status}): ${text}`);
+  }
+  return res.json() as Promise<Announcement>;
+}
+
+export async function deleteAnnouncement(
+  token: string,
+  siteId: string,
+  id: string,
+): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/announcements/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}`, "X-Site-Id": siteId },
+  });
+  if (!res.ok) throw new Error("Duyuru silinemedi");
+}
+
+// ---------------------------------------------------------------------------
+// MaintenanceRequests
+// ---------------------------------------------------------------------------
+
+export type MaintenanceCategory =
+  | "electrical"
+  | "plumbing"
+  | "elevator"
+  | "common_area"
+  | "heating"
+  | "other";
+
+export type MaintenanceStatus = "open" | "in_progress" | "resolved" | "cancelled";
+
+export interface MaintenanceRequest {
+  id: string;
+  site_id: string;
+  flat_id: string | null;
+  reported_by: string | null;
+  assigned_to: string | null;
+  category: MaintenanceCategory;
+  status: MaintenanceStatus;
+  title: string;
+  description: string;
+  admin_note: string | null;
+  created_at: string;
+  flat_unit_no: string | null;
+  flat_block_name: string | null;
+  reporter_name: string | null;
+}
+
+export interface MaintenanceRequestCreate {
+  title: string;
+  description: string;
+  category?: MaintenanceCategory;
+  flat_id?: string | null;
+}
+
+export interface MaintenanceRequestUpdate {
+  status?: MaintenanceStatus;
+  admin_note?: string;
+  assigned_to?: string;
+}
+
+export async function listMaintenanceRequests(
+  token: string,
+  siteId: string,
+  statusFilter?: MaintenanceStatus,
+): Promise<MaintenanceRequest[]> {
+  const q = statusFilter ? `?status=${statusFilter}` : "";
+  const res = await fetch(`${API_BASE_URL}/api/v1/maintenance-requests${q}`, {
+    headers: { Authorization: `Bearer ${token}`, "X-Site-Id": siteId },
+  });
+  if (!res.ok) throw new Error("Talepler yüklenemedi");
+  return res.json() as Promise<MaintenanceRequest[]>;
+}
+
+export async function getMyMaintenanceRequests(
+  token: string,
+  siteId: string,
+): Promise<MaintenanceRequest[]> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/maintenance-requests/my`, {
+    headers: { Authorization: `Bearer ${token}`, "X-Site-Id": siteId },
+  });
+  if (!res.ok) throw new Error("Taleplerim yüklenemedi");
+  return res.json() as Promise<MaintenanceRequest[]>;
+}
+
+export async function createMaintenanceRequest(
+  token: string,
+  siteId: string,
+  payload: MaintenanceRequestCreate,
+): Promise<MaintenanceRequest> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/maintenance-requests`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "X-Site-Id": siteId,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Talep oluşturulamadı (${res.status}): ${text}`);
+  }
+  return res.json() as Promise<MaintenanceRequest>;
+}
+
+export async function updateMaintenanceRequest(
+  token: string,
+  siteId: string,
+  id: string,
+  payload: MaintenanceRequestUpdate,
+): Promise<MaintenanceRequest> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/maintenance-requests/${id}`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "X-Site-Id": siteId,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Talep güncellenemedi (${res.status}): ${text}`);
+  }
+  return res.json() as Promise<MaintenanceRequest>;
+}

@@ -104,6 +104,8 @@ const NAV_GROUPS = [
       { href: "/dashboard/flats", label: "Daireler" },
       { href: "/dashboard/residents", label: "Sakinler" },
       { href: "/dashboard/users", label: "Kullanıcılar" },
+      { href: "/dashboard/announcements", label: "📢 Duyurular" },
+      { href: "/dashboard/maintenance", label: "🔧 Arıza Talepleri" },
     ],
   },
   {

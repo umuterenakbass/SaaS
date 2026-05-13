@@ -1,20 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import {
+  Announcement,
+  MaintenanceRequest,
+  MaintenanceRequestCreate,
   MyBalanceSummary,
   MyChargeItem,
   MyFlatInfo,
   MyNotificationItem,
   MyPaymentItem,
+  createMaintenanceRequest,
   getMyBalance,
   getMyCharges,
   getMyFlats,
+  getMyMaintenanceRequests,
   getMyNotifications,
   getMyPayments,
+  listAnnouncements,
 } from "@/lib/api";
 import { getAccessToken, getSiteId } from "@/lib/auth-storage";
 
@@ -34,7 +40,7 @@ const CHARGE_STATUS_COLORS: Record<string, string> = {
   cancelled: "bg-zinc-100 text-zinc-500",
 };
 
-type Tab = "overview" | "charges" | "payments" | "notifications";
+type Tab = "overview" | "charges" | "payments" | "notifications" | "announcements" | "maintenance";
 
 export default function ResidentPortalPage() {
   const router = useRouter();
@@ -50,6 +56,14 @@ export default function ResidentPortalPage() {
   const [charges, setCharges] = useState<MyChargeItem[]>([]);
   const [payments, setPayments] = useState<MyPaymentItem[]>([]);
   const [notifications, setNotifications] = useState<MyNotificationItem[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [myRequests, setMyRequests] = useState<MaintenanceRequest[]>([]);
+
+  // Maintenance form
+  const [mTitle, setMTitle] = useState("");
+  const [mDescription, setMDescription] = useState("");
+  const [mCategory, setMCategory] = useState<MaintenanceRequestCreate["category"]>("other");
+  const [mSubmitting, setMSubmitting] = useState(false);
 
   // Charge filters
   const [filterPeriod, setFilterPeriod] = useState("");
@@ -67,19 +81,23 @@ export default function ResidentPortalPage() {
   async function loadAll() {
     setLoading(true);
     try {
-      const [flatsData, balanceData, chargesData, paymentsData, notifData] =
+      const [flatsData, balanceData, chargesData, paymentsData, notifData, annData, reqData] =
         await Promise.all([
           getMyFlats(token!, siteId!),
           getMyBalance(token!, siteId!),
           getMyCharges(token!, siteId!),
           getMyPayments(token!, siteId!),
           getMyNotifications(token!, siteId!),
+          listAnnouncements(token!, siteId!),
+          getMyMaintenanceRequests(token!, siteId!),
         ]);
       setFlats(flatsData);
       setBalance(balanceData);
       setCharges(chargesData);
       setPayments(paymentsData);
       setNotifications(notifData);
+      setAnnouncements(annData);
+      setMyRequests(reqData);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Veriler yüklenemedi.");
     } finally {
@@ -109,6 +127,8 @@ export default function ResidentPortalPage() {
     { key: "charges", label: "Borçlarım" },
     { key: "payments", label: "Ödemelerim" },
     { key: "notifications", label: `Bildirimler${unreadCount > 0 ? ` (${unreadCount})` : ""}` },
+    { key: "announcements", label: `Duyurular${announcements.length > 0 ? ` (${announcements.length})` : ""}` },
+    { key: "maintenance", label: `Taleplerim${myRequests.filter((r) => r.status === "open" || r.status === "in_progress").length > 0 ? ` (${myRequests.filter((r) => r.status === "open" || r.status === "in_progress").length})` : ""}` },
   ];
 
   if (loading) {
@@ -392,6 +412,145 @@ export default function ResidentPortalPage() {
                 ))}
               </ul>
             )}
+          </section>
+        )}
+
+        {/* ── ANNOUNCEMENTS ── */}
+        {activeTab === "announcements" && (
+          <section className="space-y-3">
+            <h2 className="text-base font-semibold text-zinc-800">Site Duyuruları</h2>
+            {announcements.length === 0 && (
+              <p className="text-sm text-zinc-400">Henüz duyuru yok.</p>
+            )}
+            {announcements.map((ann) => (
+              <article
+                key={ann.id}
+                className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <p className="font-semibold text-zinc-900">{ann.title}</p>
+                  {ann.is_pinned && (
+                    <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                      📌 Sabit
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 whitespace-pre-wrap text-sm text-zinc-600">{ann.body}</p>
+                <p className="mt-2 text-xs text-zinc-400">
+                  {new Date(ann.created_at).toLocaleDateString("tr-TR")}
+                </p>
+              </article>
+            ))}
+          </section>
+        )}
+
+        {/* ── MAINTENANCE ── */}
+        {activeTab === "maintenance" && (
+          <section className="space-y-4">
+            {/* New request form */}
+            <form
+              onSubmit={(e: FormEvent) => {
+                e.preventDefault();
+                if (!token || !siteId) return;
+                setMSubmitting(true);
+                void createMaintenanceRequest(token, siteId, {
+                  title: mTitle,
+                  description: mDescription,
+                  category: mCategory,
+                  flat_id: flats[0]?.flat_id ?? undefined,
+                })
+                  .then(async () => {
+                    setMTitle(""); setMDescription(""); setMCategory("other");
+                    setMyRequests(await getMyMaintenanceRequests(token, siteId!));
+                  })
+                  .catch((err: unknown) =>
+                    setError(err instanceof Error ? err.message : "Talep gönderilemedi.")
+                  )
+                  .finally(() => setMSubmitting(false));
+              }}
+              className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm space-y-3"
+            >
+              <h2 className="text-sm font-semibold text-zinc-800">Yeni Talep / Arıza Bildir</h2>
+              <input
+                type="text"
+                placeholder="Konu başlığı"
+                value={mTitle}
+                onChange={(e) => setMTitle(e.target.value)}
+                required
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+              />
+              <textarea
+                placeholder="Açıklama…"
+                value={mDescription}
+                onChange={(e) => setMDescription(e.target.value)}
+                required
+                rows={3}
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+              />
+              <div className="flex flex-wrap gap-3">
+                <select
+                  value={mCategory}
+                  onChange={(e) => setMCategory(e.target.value as MaintenanceRequestCreate["category"])}
+                  className="rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+                >
+                  <option value="electrical">⚡ Elektrik</option>
+                  <option value="plumbing">🔧 Tesisat</option>
+                  <option value="elevator">🛗 Asansör</option>
+                  <option value="common_area">🏢 Ortak Alan</option>
+                  <option value="heating">🔥 Isıtma</option>
+                  <option value="other">📋 Diğer</option>
+                </select>
+                <button
+                  type="submit"
+                  disabled={mSubmitting}
+                  className="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-medium text-white disabled:opacity-60"
+                >
+                  {mSubmitting ? "Gönderiliyor…" : "Talep Gönder"}
+                </button>
+              </div>
+            </form>
+
+            {/* My request list */}
+            <h2 className="text-sm font-semibold text-zinc-700">Geçmiş Taleplerim</h2>
+            {myRequests.length === 0 && (
+              <p className="text-sm text-zinc-400">Henüz talep yok.</p>
+            )}
+            {myRequests.map((req) => {
+              const statusColor: Record<string, string> = {
+                open: "bg-rose-100 text-rose-700",
+                in_progress: "bg-amber-100 text-amber-700",
+                resolved: "bg-emerald-100 text-emerald-700",
+                cancelled: "bg-zinc-100 text-zinc-500",
+              };
+              const statusLabel: Record<string, string> = {
+                open: "Açık",
+                in_progress: "İşlemde",
+                resolved: "Çözüldü",
+                cancelled: "İptal",
+              };
+              return (
+                <article
+                  key={req.id}
+                  className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-semibold text-zinc-900">{req.title}</p>
+                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${statusColor[req.status]}`}>
+                      {statusLabel[req.status]}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm text-zinc-600">{req.description}</p>
+                  {req.admin_note && (
+                    <p className="mt-1 rounded bg-zinc-50 px-2 py-1 text-xs text-zinc-500">
+                      Yönetici notu: {req.admin_note}
+                    </p>
+                  )}
+                  <p className="mt-1 text-xs text-zinc-400">
+                    {new Date(req.created_at).toLocaleDateString("tr-TR")}
+                  </p>
+                </article>
+              );
+            })}
           </section>
         )}
 
