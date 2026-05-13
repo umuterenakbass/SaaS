@@ -22,9 +22,10 @@ router = APIRouter(prefix="/onboarding", tags=["onboarding"])
 _ADMIN = require_roles({UserRole.admin, UserRole.manager})
 
 
-def _generate_unit_no(prefix: str, floor: int, position: int) -> str:
-    """Daire numarası üret: A101, A102 veya (prefix boşsa) 101, 102"""
-    return f"{prefix}{floor}{position:02d}"
+def _generate_unit_no(floor: int, position: int, flats_per_floor: int) -> str:
+    """Basit sıralı daire numarası: 1, 2, 3, ..., N"""
+    flat_number = (floor - 1) * flats_per_floor + position
+    return str(flat_number)
 
 
 def _create_block_with_flats(
@@ -60,7 +61,7 @@ def _create_block_with_flats(
 
     for floor in range(1, item.floors + 1):
         for pos in range(1, item.flats_per_floor + 1):
-            unit_no = _generate_unit_no(prefix, floor, pos)
+            unit_no = _generate_unit_no(floor, pos, item.flats_per_floor)
             # Aynı blok içinde duplicate olmamalı
             if unit_no in seen_units:
                 continue

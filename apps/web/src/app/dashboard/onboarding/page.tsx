@@ -29,14 +29,12 @@ const EMPTY_BLOCK: BlockSetupItem = {
 
 // Örnek daire no önizleme
 function previewUnits(block: BlockSetupItem): string[] {
-  const prefix = block.unit_prefix || block.code || "A";
+  const total = block.floors * block.flats_per_floor;
   const units: string[] = [];
-  for (let floor = 1; floor <= Math.min(block.floors, 2); floor++) {
-    for (let pos = 1; pos <= Math.min(block.flats_per_floor, 3); pos++) {
-      units.push(`${prefix}${floor}${String(pos).padStart(2, "0")}`);
-    }
+  for (let i = 1; i <= Math.min(total, 4); i++) {
+    units.push(String(i));
   }
-  if (block.floors > 2 || block.flats_per_floor > 3) units.push("...");
+  if (total > 4) units.push("...");
   return units;
 }
 
@@ -156,22 +154,17 @@ function Step1Blocks({
               </div>
             </div>
 
-            {block.code && (
-              <div className="mt-3 flex items-center gap-2 flex-wrap">
-                <span className="text-xs text-gray-400">Örnek daire numaraları:</span>
-                {previewUnits(block).map((u, j) => (
-                  <span
-                    key={j}
-                    className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-mono"
-                  >
-                    {u}
-                  </span>
-                ))}
-                <span className="text-xs text-gray-400 ml-1">
-                  (Toplam: {block.floors * block.flats_per_floor} daire)
+            <div className="mt-3 flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-gray-400">Örnek daire numaraları:</span>
+              {previewUnits(block).map((u, j) => (
+                <span key={j} className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-mono">
+                  {u}
                 </span>
-              </div>
-            )}
+              ))}
+              <span className="text-xs text-gray-400 ml-1">
+                (Toplam: {block.floors * block.flats_per_floor} daire)
+              </span>
+            </div>
           </div>
         ))}
       </div>
