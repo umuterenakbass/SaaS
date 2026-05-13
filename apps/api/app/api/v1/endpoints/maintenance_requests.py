@@ -97,8 +97,8 @@ def create_request(
 def my_requests(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_tenant_context),
-    _: User = Depends(_RESIDENT_ONLY),
 ) -> list[MaintenanceRequestResponse]:
+    """Giriş yapan kullanıcının kendi açtığı talepleri — tüm roller erişebilir."""
     items = (
         db.query(MaintenanceRequest)
         .filter(
