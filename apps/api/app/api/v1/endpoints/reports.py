@@ -5,7 +5,7 @@ from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
-from sqlalchemy import func
+from sqlalchemy import func, extract
 from sqlalchemy.orm import Session
 
 from app.core.deps import require_tenant_context
@@ -61,7 +61,8 @@ def period_summary(
         db.query(Payment)
         .filter(
             Payment.site_id == site_id,
-            func.strftime("%Y-%m", Payment.paid_at) == period,
+            extract("year", Payment.paid_at) == int(year),
+            extract("month", Payment.paid_at) == int(month),
             Payment.deleted_at.is_(None),
         )
         .all()
@@ -166,8 +167,10 @@ def flat_summary(
             Payment.deleted_at.is_(None),
         )
         if period:
+            p_year, p_month = period.split("-")
             payment_q = payment_q.filter(
-                func.strftime("%Y-%m", Payment.paid_at) == period
+                extract("year", Payment.paid_at) == int(p_year),
+                extract("month", Payment.paid_at) == int(p_month),
             )
         flat_payments = payment_q.all()
 
@@ -253,7 +256,11 @@ def export_payments_csv(
 
     q = db.query(Payment).filter(Payment.site_id == site_id, Payment.deleted_at.is_(None))
     if period:
-        q = q.filter(func.strftime("%Y-%m", Payment.paid_at) == period)
+        exp_year, exp_month = period.split("-")
+        q = q.filter(
+            extract("year", Payment.paid_at) == int(exp_year),
+            extract("month", Payment.paid_at) == int(exp_month),
+        )
     if flat_id:
         q = q.filter(Payment.flat_id == flat_id)
 
