@@ -1,5 +1,5 @@
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
 export type ApiHealthResponse = {
   status: string;
@@ -867,10 +867,13 @@ export async function getPeriodSummary(
   siteId: string,
   period: string,
 ): Promise<PeriodSummaryReport> {
-  const response = await fetch(
-    `${API_BASE_URL}/api/v1/reports/period-summary?period=${encodeURIComponent(period)}`,
-    { method: "GET", headers: buildTenantHeaders(token, siteId, false) },
-  );
+  const url = `${API_BASE_URL}/api/v1/reports/period-summary?period=${encodeURIComponent(period)}`;
+  let response: Response;
+  try {
+    response = await fetch(url, { method: "GET", headers: buildTenantHeaders(token, siteId, false) });
+  } catch (e) {
+    throw new Error(`Backend'e ulaşılamıyor (${url}) — ${String(e)}`);
+  }
   if (!response.ok) throw new Error(`Dönem özeti alınamadı (${response.status})`);
   return (await response.json()) as PeriodSummaryReport;
 }
@@ -881,10 +884,13 @@ export async function getFlatSummary(
   period?: string,
 ): Promise<FlatSummaryReport> {
   const query = period ? `?period=${encodeURIComponent(period)}` : "";
-  const response = await fetch(
-    `${API_BASE_URL}/api/v1/reports/flat-summary${query}`,
-    { method: "GET", headers: buildTenantHeaders(token, siteId, false) },
-  );
+  const url = `${API_BASE_URL}/api/v1/reports/flat-summary${query}`;
+  let response: Response;
+  try {
+    response = await fetch(url, { method: "GET", headers: buildTenantHeaders(token, siteId, false) });
+  } catch (e) {
+    throw new Error(`Backend'e ulaşılamıyor (${url}) — ${String(e)}`);
+  }
   if (!response.ok) throw new Error(`Daire özeti alınamadı (${response.status})`);
   return (await response.json()) as FlatSummaryReport;
 }

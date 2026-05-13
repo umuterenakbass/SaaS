@@ -32,7 +32,10 @@ export default function ReportsPage() {
   }, [router, siteId, token]);
 
   const handleLoad = async () => {
-    if (!token || !siteId) return;
+    if (!token || !siteId) {
+      setError(`Oturum bilgisi eksik — token: ${token ? "var" : "YOK"}, siteId: ${siteId ? "var" : "YOK"}`);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -43,7 +46,8 @@ export default function ReportsPage() {
       setPeriodReport(ps);
       setFlatReport(fs);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Rapor yüklenemedi.");
+      console.error("Rapor hatası:", err);
+      setError(err instanceof Error ? `${err.name}: ${err.message}` : "Rapor yüklenemedi.");
     } finally {
       setLoading(false);
     }
