@@ -4,7 +4,15 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { fetchCurrentUser, fetchTenantContext, getUnreadCount } from "@/lib/api";
+import {
+  OverdueChargeItem,
+  TopDebtorItem,
+  fetchCurrentUser,
+  fetchTenantContext,
+  getOverdueCharges,
+  getTopDebtors,
+  getUnreadCount,
+} from "@/lib/api";
 import { clearSession, getAccessToken, getSiteId } from "@/lib/auth-storage";
 
 export default function DashboardPage() {
@@ -15,6 +23,8 @@ export default function DashboardPage() {
   const [siteId, setSiteId] = useState<string>("");
   const [role, setRole] = useState<string>("");
   const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [overdueList, setOverdueList] = useState<OverdueChargeItem[]>([]);
+  const [topDebtors, setTopDebtors] = useState<TopDebtorItem[]>([]);
 
   useEffect(() => {
     const run = async () => {
@@ -34,12 +44,19 @@ export default function DashboardPage() {
         setSiteId(tenant.site_id);
         setRole(tenant.role);
 
+        // Bildirim sayısı
+        try { setUnreadCount(await getUnreadCount(token, storedSiteId)); } catch { /* ignore */ }
+
+        // Vadesi geçmiş + en borçlu daireler (sadece manager/admin görebilir)
         try {
-          const count = await getUnreadCount(token, storedSiteId);
-          setUnreadCount(count);
-        } catch {
-          // bildirim sayısı hata versese dashboard yüklenmesin diye bloke etme
-        }
+          const [overdue, debtors] = await Promise.all([
+            getOverdueCharges(token, storedSiteId, 5),
+            getTopDebtors(token, storedSiteId, 5),
+          ]);
+          setOverdueList(overdue);
+          setTopDebtors(debtors);
+        } catch { /* ignore — resident rolü erişemez */ }
+
       } catch (err) {
         clearSession();
         setError(err instanceof Error ? err.message : "Dashboard yüklenemedi.");
@@ -64,134 +81,146 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-zinc-50 px-6 py-10">
-      <main className="mx-auto flex w-full max-w-4xl flex-col gap-6">
+      <main className="mx-auto flex w-full max-w-5xl flex-col gap-6">
         <header className="rounded-2xl bg-indigo-600 p-6 text-white shadow-sm">
-          <h1 className="text-2xl font-semibold">Yönetici Dashboard</h1>
-          <p className="mt-2 text-sm text-indigo-100">Sprint 2 auth + tenant doğrulama aktif.</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold">Yönetici Dashboard</h1>
+              <p className="mt-1 text-sm text-indigo-200">{userEmail} · {role}</p>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="rounded-lg border border-indigo-400 px-3 py-1.5 text-sm text-white"
+            >
+              Çıkış
+            </button>
+          </div>
         </header>
 
         {error ? <p className="text-sm text-rose-600">{error}</p> : null}
 
-        <section className="grid gap-4 md:grid-cols-3">
-          <article className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <p className="text-sm text-zinc-500">Kullanıcı</p>
-            <p className="mt-1 font-medium text-zinc-900">{userEmail}</p>
-          </article>
-          <article className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <p className="text-sm text-zinc-500">Site Kimliği</p>
-            <p className="mt-1 break-all font-medium text-zinc-900">{siteId}</p>
-          </article>
-          <article className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <p className="text-sm text-zinc-500">Rol</p>
-            <p className="mt-1 font-medium capitalize text-zinc-900">{role}</p>
-          </article>
-        </section>
-
-        <section className="flex flex-wrap gap-3">
-          <Link
-            href="/dashboard/users"
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white"
-          >
-            Kullanıcı Yönetimi
-          </Link>
-          <Link
-            href="/dashboard/portal"
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white"
-          >
-            Sakin Portalı
-          </Link>
-          <Link
-            href="/dashboard/blocks"
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white"
-          >
-            Blok Yönetimi
-          </Link>
-          <Link
-            href="/dashboard/flats"
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white"
-          >
-            Daire Yönetimi
-          </Link>
-          <Link
-            href="/dashboard/residents"
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white"
-          >
-            Sakin İlişkileri
-          </Link>
-          <Link
-            href="/dashboard/charges"
-            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white"
-          >
-            Borç Yönetimi
-          </Link>
-          <Link
-            href="/dashboard/payments"
-            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white"
-          >
-            Ödeme Yönetimi
-          </Link>
-          <Link
-            href="/dashboard/ledger"
-            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white"
-          >
-            Ekstre / Bakiye
-          </Link>
-          <Link
-            href="/dashboard/charge-plans"
-            className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white"
-          >
-            Plan Yönetimi
-          </Link>
-          <Link
-            href="/dashboard/allocations"
-            className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white"
-          >
-            Tahsis Yönetimi
-          </Link>
-          <Link
-            href="/dashboard/notifications"
-            className="relative rounded-lg bg-zinc-700 px-4 py-2 text-sm font-medium text-white"
-          >
-            Bildirimler
-            {unreadCount > 0 && (
-              <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-xs font-bold text-white">
-                {unreadCount > 99 ? "99+" : unreadCount}
-              </span>
+        {/* İstatistik Kartları */}
+        {(overdueList.length > 0 || topDebtors.length > 0) && (
+          <section className="grid gap-4 md:grid-cols-2">
+            {/* Vadesi Geçmiş Borçlar */}
+            {overdueList.length > 0 && (
+              <article className="rounded-xl border border-rose-200 bg-white shadow-sm">
+                <div className="flex items-center justify-between border-b border-rose-100 px-4 py-3">
+                  <h2 className="font-semibold text-rose-700">⚠ Vadesi Geçmiş Borçlar</h2>
+                  <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-700">
+                    {overdueList.length}
+                  </span>
+                </div>
+                <ul className="divide-y divide-zinc-50">
+                  {overdueList.map((item) => (
+                    <li key={item.charge_id} className="flex items-center justify-between px-4 py-2.5">
+                      <div>
+                        <p className="text-sm font-medium text-zinc-900">
+                          {item.block_name} / {item.unit_no} — {item.charge_type}
+                        </p>
+                        <p className="text-xs text-zinc-500">{item.period} · {item.days_overdue} gün gecikmiş</p>
+                      </div>
+                      <span className="text-sm font-semibold text-rose-700">{item.amount} ₺</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="px-4 py-2">
+                  <Link href="/dashboard/charges" className="text-xs font-medium text-indigo-600">
+                    Tümünü gör →
+                  </Link>
+                </div>
+              </article>
             )}
-          </Link>
-          <Link
-            href="/dashboard/analytics"
-            className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white"
-          >
-            Analytics
-          </Link>
-          <Link
-            href="/dashboard/reports"
-            className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white"
-          >
-            Raporlar
-          </Link>
-          <Link
-            href="/dashboard/bulk-charge"
-            className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white"
-          >
-            Toplu Borç
-          </Link>
-          <Link
-            href="/dashboard/scheduled-charges"
-            className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white"
-          >
-            Otomatik Kurallar
-          </Link>
-        </section>
 
-        <button
-          onClick={handleLogout}
-          className="w-fit rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
-        >
-          Çıkış Yap
-        </button>
+            {/* En Borçlu Daireler */}
+            {topDebtors.length > 0 && (
+              <article className="rounded-xl border border-amber-200 bg-white shadow-sm">
+                <div className="flex items-center justify-between border-b border-amber-100 px-4 py-3">
+                  <h2 className="font-semibold text-amber-700">📊 En Borçlu Daireler</h2>
+                </div>
+                <ul className="divide-y divide-zinc-50">
+                  {topDebtors.map((item, idx) => (
+                    <li key={item.flat_id} className="flex items-center justify-between px-4 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-100 text-xs font-bold text-amber-700">
+                          {idx + 1}
+                        </span>
+                        <div>
+                          <p className="text-sm font-medium text-zinc-900">
+                            {item.block_name} / {item.unit_no}
+                          </p>
+                          <p className="text-xs text-zinc-500">{item.pending_charge_count} bekleyen borç</p>
+                        </div>
+                      </div>
+                      <span className="text-sm font-semibold text-amber-700">{item.total_debt} ₺</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="px-4 py-2">
+                  <Link href="/dashboard/analytics" className="text-xs font-medium text-indigo-600">
+                    Analytics →
+                  </Link>
+                </div>
+              </article>
+            )}
+          </section>
+        )}
+
+        {/* Navigasyon */}
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-400">Yönetim</h2>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { href: "/dashboard/users", label: "Kullanıcı Yönetimi", color: "bg-indigo-600" },
+              { href: "/dashboard/blocks", label: "Blok Yönetimi", color: "bg-indigo-600" },
+              { href: "/dashboard/flats", label: "Daire Yönetimi", color: "bg-indigo-600" },
+              { href: "/dashboard/residents", label: "Sakin İlişkileri", color: "bg-indigo-600" },
+              { href: "/dashboard/portal", label: "Sakin Portalı", color: "bg-indigo-500" },
+            ].map((l) => (
+              <Link key={l.href} href={l.href} className={`rounded-lg ${l.color} px-4 py-2 text-sm font-medium text-white`}>
+                {l.label}
+              </Link>
+            ))}
+          </div>
+
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-400">Finans</h2>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { href: "/dashboard/charges", label: "Borç Yönetimi", color: "bg-emerald-600" },
+              { href: "/dashboard/payments", label: "Ödeme Yönetimi", color: "bg-emerald-600" },
+              { href: "/dashboard/ledger", label: "Ekstre / Bakiye", color: "bg-emerald-600" },
+              { href: "/dashboard/installments", label: "Taksit Planları", color: "bg-emerald-700" },
+              { href: "/dashboard/allocations", label: "Tahsis Yönetimi", color: "bg-emerald-600" },
+            ].map((l) => (
+              <Link key={l.href} href={l.href} className={`rounded-lg ${l.color} px-4 py-2 text-sm font-medium text-white`}>
+                {l.label}
+              </Link>
+            ))}
+          </div>
+
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-400">Otomasyon & Raporlama</h2>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { href: "/dashboard/charge-plans", label: "Plan Yönetimi", color: "bg-amber-600" },
+              { href: "/dashboard/bulk-charge", label: "Toplu Borç", color: "bg-violet-600" },
+              { href: "/dashboard/scheduled-charges", label: "Otomatik Kurallar", color: "bg-violet-600" },
+              { href: "/dashboard/analytics", label: "Analytics", color: "bg-sky-600" },
+              { href: "/dashboard/reports", label: "Raporlar", color: "bg-sky-600" },
+              {
+                href: "/dashboard/notifications",
+                label: unreadCount > 0 ? `Bildirimler (${unreadCount})` : "Bildirimler",
+                color: "bg-zinc-700",
+              },
+            ].map((l) => (
+              <Link key={l.href} href={l.href} className={`rounded-lg ${l.color} px-4 py-2 text-sm font-medium text-white`}>
+                {l.label}
+              </Link>
+            ))}
+          </div>
+        </section>
       </main>
     </div>
   );
 }
+
+

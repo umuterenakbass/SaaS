@@ -1240,9 +1240,140 @@ export async function getMonthlyTrend(
   return res.json() as Promise<MonthlyTrendItem[]>;
 }
 
-// ---------------------------------------------------------------------------
-// User Management
-// ---------------------------------------------------------------------------
+export interface OverdueChargeItem {
+  charge_id: string;
+  flat_id: string;
+  unit_no: string;
+  block_name: string;
+  charge_type: string;
+  period: string;
+  amount: string;
+  due_date: string;
+  days_overdue: number;
+}
+
+export interface TopDebtorItem {
+  flat_id: string;
+  unit_no: string;
+  block_name: string;
+  total_debt: string;
+  pending_charge_count: number;
+}
+
+export async function getOverdueCharges(
+  token: string,
+  siteId: string,
+  limit = 20,
+): Promise<OverdueChargeItem[]> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/v1/analytics/overdue-charges?limit=${limit}`,
+    { headers: { Authorization: `Bearer ${token}`, "X-Site-Id": siteId } },
+  );
+  if (!res.ok) throw new Error("Vadesi geçmiş borçlar yüklenemedi");
+  return res.json() as Promise<OverdueChargeItem[]>;
+}
+
+export async function getTopDebtors(
+  token: string,
+  siteId: string,
+  limit = 10,
+): Promise<TopDebtorItem[]> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/v1/analytics/top-debtors?limit=${limit}`,
+    { headers: { Authorization: `Bearer ${token}`, "X-Site-Id": siteId } },
+  );
+  if (!res.ok) throw new Error("En borçlu daireler yüklenemedi");
+  return res.json() as Promise<TopDebtorItem[]>;
+}
+
+// ── Installments ─────────────────────────────────────────────────────────────
+
+export interface InstallmentItemOut {
+  id: string;
+  installment_no: number;
+  amount: string;
+  due_date: string;
+  status: string;
+  paid_at: string | null;
+}
+
+export interface InstallmentPlanOut {
+  id: string;
+  site_id: string;
+  flat_id: string;
+  charge_id: string | null;
+  title: string;
+  total_amount: string;
+  installment_count: number;
+  is_active: boolean;
+  items: InstallmentItemOut[];
+}
+
+export interface InstallmentPlanCreate {
+  flat_id: string;
+  charge_id?: string;
+  title: string;
+  total_amount: string;
+  installment_count: number;
+  first_due_date: string; // YYYY-MM-DD
+}
+
+export async function listInstallmentPlans(
+  token: string,
+  siteId: string,
+): Promise<InstallmentPlanOut[]> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/installments`, {
+    headers: { Authorization: `Bearer ${token}`, "X-Site-Id": siteId },
+  });
+  if (!res.ok) throw new Error("Taksit planları yüklenemedi");
+  return res.json() as Promise<InstallmentPlanOut[]>;
+}
+
+export async function createInstallmentPlan(
+  token: string,
+  siteId: string,
+  payload: InstallmentPlanCreate,
+): Promise<InstallmentPlanOut> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/installments`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "X-Site-Id": siteId, "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = (await res.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(err.detail ?? `Taksit planı oluşturulamadı (${res.status})`);
+  }
+  return res.json() as Promise<InstallmentPlanOut>;
+}
+
+export async function payInstallmentItem(
+  token: string,
+  siteId: string,
+  planId: string,
+  itemId: string,
+): Promise<InstallmentItemOut> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/v1/installments/${planId}/items/${itemId}/pay`,
+    { method: "PATCH", headers: { Authorization: `Bearer ${token}`, "X-Site-Id": siteId } },
+  );
+  if (!res.ok) {
+    const err = (await res.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(err.detail ?? `Taksit ödenemedi (${res.status})`);
+  }
+  return res.json() as Promise<InstallmentItemOut>;
+}
+
+export async function deleteInstallmentPlan(
+  token: string,
+  siteId: string,
+  planId: string,
+): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/installments/${planId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}`, "X-Site-Id": siteId },
+  });
+  if (!res.ok) throw new Error(`Plan silinemedi (${res.status})`);
+}
 
 export type UserRole = "manager" | "accountant" | "resident";
 

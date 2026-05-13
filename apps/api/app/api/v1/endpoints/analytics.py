@@ -1,12 +1,13 @@
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func
+from sqlalchemy import extract, func
 from sqlalchemy.orm import Session
 
 from app.core.deps import require_roles, require_tenant_context
 from app.db.session import get_db
+from app.models.block import Block
 from app.models.charge import Charge, ChargeStatus
 from app.models.flat import Flat, FlatStatus
 from app.models.payment import Payment
@@ -17,6 +18,8 @@ from app.schemas.analytics import (
     ChargeTypeBreakdownItem,
     FlatOccupancyStats,
     MonthlyTrendItem,
+    OverdueChargeItem,
+    TopDebtorItem,
 )
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
@@ -60,7 +63,8 @@ def _monthly_trend(db: Session, site_id: str, periods: list[str]) -> list[Monthl
             .filter(
                 Payment.site_id == site_id,
                 Payment.deleted_at.is_(None),
-                func.strftime("%Y-%m", Payment.paid_at) == period,
+                extract("year", Payment.paid_at) == int(period[:4]),
+                extract("month", Payment.paid_at) == int(period[5:]),
             )
             .scalar()
         )
@@ -187,3 +191,115 @@ def flat_occupancy(
     _: User = Depends(_MGMT),
 ) -> FlatOccupancyStats:
     return _occupancy(db, current_user.site_id)
+
+
+# ---------------------------------------------------------------------------
+# Yeni: Vadesi geçmiş borçlar listesi
+# ---------------------------------------------------------------------------
+
+@router.get("/overdue-charges", response_model=list[OverdueChargeItem])
+def overdue_charges(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_tenant_context),
+    _: User = Depends(_MGMT),
+    limit: int = Query(default=20, ge=1, le=100),
+) -> list[OverdueChargeItem]:
+    today = date.today()
+    rows = (
+        db.query(Charge)
+        .filter(
+            Charge.site_id == current_user.site_id,
+            Charge.status == ChargeStatus.pending,
+            Charge.due_date < today,
+            Charge.deleted_at.is_(None),
+        )
+        .order_by(Charge.due_date.asc())
+        .limit(limit)
+        .all()
+    )
+    block_map = {
+        b.id: b.name
+        for b in db.query(Block).filter(
+            Block.site_id == current_user.site_id,
+            Block.deleted_at.is_(None),
+        ).all()
+    }
+    result = []
+    for c in rows:
+        flat = db.query(Flat).filter(Flat.id == c.flat_id).first()
+        block_name = block_map.get(flat.block_id, "-") if flat else "-"
+        days_overdue = (today - c.due_date).days
+        result.append(OverdueChargeItem(
+            charge_id=c.id,
+            flat_id=c.flat_id,
+            unit_no=flat.unit_no if flat else "-",
+            block_name=block_name,
+            charge_type=c.charge_type,
+            period=c.period,
+            amount=c.amount,
+            due_date=c.due_date.isoformat(),
+            days_overdue=days_overdue,
+        ))
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Yeni: En çok borçlu daireler
+# ---------------------------------------------------------------------------
+
+@router.get("/top-debtors", response_model=list[TopDebtorItem])
+def top_debtors(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_tenant_context),
+    _: User = Depends(_MGMT),
+    limit: int = Query(default=10, ge=1, le=50),
+) -> list[TopDebtorItem]:
+    site_id = current_user.site_id
+
+    flats = db.query(Flat).filter(
+        Flat.site_id == site_id, Flat.deleted_at.is_(None)
+    ).all()
+
+    block_map = {
+        b.id: b.name
+        for b in db.query(Block).filter(
+            Block.site_id == site_id, Block.deleted_at.is_(None)
+        ).all()
+    }
+
+    items = []
+    for flat in flats:
+        total_charges = db.query(func.coalesce(func.sum(Charge.amount), 0)).filter(
+            Charge.flat_id == flat.id,
+            Charge.site_id == site_id,
+            Charge.status != ChargeStatus.cancelled,
+            Charge.deleted_at.is_(None),
+        ).scalar()
+
+        total_payments = db.query(func.coalesce(func.sum(Payment.amount), 0)).filter(
+            Payment.flat_id == flat.id,
+            Payment.site_id == site_id,
+            Payment.deleted_at.is_(None),
+        ).scalar()
+
+        balance = Decimal(str(total_charges)) - Decimal(str(total_payments))
+        if balance <= 0:
+            continue
+
+        pending_count = db.query(Charge).filter(
+            Charge.flat_id == flat.id,
+            Charge.site_id == site_id,
+            Charge.status == ChargeStatus.pending,
+            Charge.deleted_at.is_(None),
+        ).count()
+
+        items.append(TopDebtorItem(
+            flat_id=flat.id,
+            unit_no=flat.unit_no,
+            block_name=block_map.get(flat.block_id, "-"),
+            total_debt=balance,
+            pending_charge_count=pending_count,
+        ))
+
+    items.sort(key=lambda x: x.total_debt, reverse=True)
+    return items[:limit]

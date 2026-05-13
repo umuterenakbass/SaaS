@@ -7,6 +7,7 @@ from app.api.v1.endpoints.charges import router as charges_router
 from app.api.v1.endpoints.charge_plans import router as charge_plans_router
 from app.api.v1.endpoints.flats import router as flats_router
 from app.api.v1.endpoints.health import router as health_router
+from app.api.v1.endpoints.installments import router as installments_router
 from app.api.v1.endpoints.ledger import router as ledger_router
 from app.api.v1.endpoints.notifications import router as notifications_router
 from app.api.v1.endpoints.payment_allocations import router as payment_allocations_router
@@ -27,6 +28,7 @@ api_router_v1.include_router(blocks_router)
 api_router_v1.include_router(charge_plans_router)
 api_router_v1.include_router(flats_router)
 api_router_v1.include_router(charges_router)
+api_router_v1.include_router(installments_router)
 api_router_v1.include_router(payments_router)
 api_router_v1.include_router(payment_allocations_router)
 api_router_v1.include_router(ledger_router)
