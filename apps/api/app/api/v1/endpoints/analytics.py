@@ -95,13 +95,17 @@ def _occupancy(db: Session, site_id: str) -> FlatOccupancyStats:
         Flat.status == FlatStatus.active,
     ).count()
 
-    # En az bir aktif sakin ilişkisi olan daire (end_date null veya gelecekte)
+    # En az bir aktif sakin ilişkisi olan daire (end_date null veya gelecekte/bugün)
+    today = date.today()
     occupied_flat_ids = (
         db.query(ResidentFlatRelation.flat_id)
         .filter(
             ResidentFlatRelation.site_id == site_id,
             ResidentFlatRelation.deleted_at.is_(None),
-            ResidentFlatRelation.end_date.is_(None),
+            (
+                ResidentFlatRelation.end_date.is_(None)
+                | (ResidentFlatRelation.end_date >= today)
+            ),
         )
         .distinct()
         .subquery()
