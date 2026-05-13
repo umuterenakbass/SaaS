@@ -14,11 +14,13 @@ from app.models.payment import Payment
 from app.models.resident_flat_relation import ResidentFlatRelation
 from app.models.user import User, UserRole
 from app.schemas.analytics import (
+    ActionItem,
     AnalyticsDashboardResponse,
     ChargeTypeBreakdownItem,
     FlatOccupancyStats,
     MonthlyTrendItem,
     OverdueChargeItem,
+    TodayActionsResponse,
     TopDebtorItem,
 )
 
@@ -303,3 +305,153 @@ def top_debtors(
 
     items.sort(key=lambda x: x.total_debt, reverse=True)
     return items[:limit]
+
+
+# ---------------------------------------------------------------------------
+# GET /analytics/today-actions  — "Bugün ne yapmalıyım?" dashboard
+# ---------------------------------------------------------------------------
+
+@router.get(
+    "/today-actions",
+    response_model=TodayActionsResponse,
+    summary="Bugünkü aksiyon listesi",
+    description="Vadesi geçmiş borçlar, bu hafta vadesi dolacaklar ve bugün yapılan ödemeler.",
+)
+def today_actions(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_tenant_context),
+    _: User = Depends(_MGMT),
+) -> TodayActionsResponse:
+    site_id = current_user.site_id
+    today = date.today()
+    week_end = date(today.year, today.month, today.day)
+    from datetime import timedelta
+    week_later = today + timedelta(days=7)
+
+    # Blok haritası
+    blocks = db.query(Block).filter(Block.site_id == site_id, Block.deleted_at.is_(None)).all()
+    block_map = {b.id: b.name for b in blocks}
+
+    # Daire haritası
+    flats = db.query(Flat).filter(Flat.site_id == site_id, Flat.deleted_at.is_(None)).all()
+    flat_map = {f.id: f for f in flats}
+
+    # --- Vadesi geçmiş borçlar ---
+    overdue_charges = (
+        db.query(Charge)
+        .filter(
+            Charge.site_id == site_id,
+            Charge.status == ChargeStatus.pending,
+            Charge.due_date < today,
+            Charge.deleted_at.is_(None),
+        )
+        .order_by(Charge.due_date.asc())
+        .all()
+    )
+    overdue_items = []
+    overdue_total = Decimal("0")
+    for c in overdue_charges:
+        flat = flat_map.get(c.flat_id)
+        if not flat:
+            continue
+        days = (today - c.due_date).days
+        overdue_items.append(ActionItem(
+            flat_id=flat.id,
+            unit_no=flat.unit_no,
+            block_name=block_map.get(flat.block_id, "-"),
+            description=f"{c.charge_type} — {c.period}",
+            amount=c.amount,
+            due_date=c.due_date.isoformat(),
+            days_overdue=days,
+        ))
+        overdue_total += c.amount
+
+    # --- Bu hafta vadesi dolacak ---
+    week_charges = (
+        db.query(Charge)
+        .filter(
+            Charge.site_id == site_id,
+            Charge.status == ChargeStatus.pending,
+            Charge.due_date >= today,
+            Charge.due_date <= week_later,
+            Charge.deleted_at.is_(None),
+        )
+        .order_by(Charge.due_date.asc())
+        .all()
+    )
+    due_week_items = []
+    due_week_total = Decimal("0")
+    for c in week_charges:
+        flat = flat_map.get(c.flat_id)
+        if not flat:
+            continue
+        due_week_items.append(ActionItem(
+            flat_id=flat.id,
+            unit_no=flat.unit_no,
+            block_name=block_map.get(flat.block_id, "-"),
+            description=f"{c.charge_type} — {c.period}",
+            amount=c.amount,
+            due_date=c.due_date.isoformat(),
+        ))
+        due_week_total += c.amount
+
+    # --- Bugün yapılan ödemeler ---
+    todays_payments = (
+        db.query(Payment)
+        .filter(
+            Payment.site_id == site_id,
+            Payment.payment_date == today,
+            Payment.deleted_at.is_(None),
+        )
+        .order_by(Payment.created_at.desc())
+        .all()
+    )
+    paid_items = []
+    paid_total = Decimal("0")
+    for p in todays_payments:
+        flat = flat_map.get(p.flat_id)
+        if not flat:
+            continue
+        paid_items.append(ActionItem(
+            flat_id=flat.id,
+            unit_no=flat.unit_no,
+            block_name=block_map.get(flat.block_id, "-"),
+            description=f"Ödeme alındı",
+            amount=p.amount,
+        ))
+        paid_total += p.amount
+
+    # --- Bu ay tahsilat oranı ---
+    current_period = f"{today.year:04d}-{today.month:02d}"
+    month_charged = db.query(func.coalesce(func.sum(Charge.amount), 0)).filter(
+        Charge.site_id == site_id,
+        Charge.period == current_period,
+        Charge.status != ChargeStatus.cancelled,
+        Charge.deleted_at.is_(None),
+    ).scalar() or 0
+
+    month_paid = db.query(func.coalesce(func.sum(Payment.amount), 0)).filter(
+        Payment.site_id == site_id,
+        extract("year", Payment.payment_date) == today.year,
+        extract("month", Payment.payment_date) == today.month,
+        Payment.deleted_at.is_(None),
+    ).scalar() or 0
+
+    if month_charged > 0:
+        rate = Decimal(str(month_paid)) / Decimal(str(month_charged)) * 100
+        collection_rate = f"{min(rate, Decimal('100')):.2f}"
+    else:
+        collection_rate = "0.00"
+
+    return TodayActionsResponse(
+        overdue_count=len(overdue_items),
+        overdue_total=overdue_total,
+        due_this_week_count=len(due_week_items),
+        due_this_week_total=due_week_total,
+        paid_today_count=len(paid_items),
+        paid_today_total=paid_total,
+        collection_rate_this_month=collection_rate,
+        overdue_items=overdue_items,
+        due_this_week_items=due_week_items,
+        paid_today_items=paid_items,
+    )

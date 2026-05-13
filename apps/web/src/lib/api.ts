@@ -1458,3 +1458,102 @@ export async function deleteUser(
   });
   if (!res.ok) throw new Error("Kullanıcı silinemedi");
 }
+
+// ---------------------------------------------------------------------------
+// Sprint 14-UX — Onboarding
+// ---------------------------------------------------------------------------
+
+export interface BlockSetupItem {
+  name: string;
+  code: string;
+  floors: number;
+  flats_per_floor: number;
+  unit_prefix?: string;
+}
+
+export interface ChargeTemplateItem {
+  charge_type: string;
+  amount: number;
+  period: string;
+  due_date: string;
+}
+
+export interface OnboardingSetupRequest {
+  blocks: BlockSetupItem[];
+  charge_template?: ChargeTemplateItem | null;
+}
+
+export interface BlockSummary {
+  id: string;
+  name: string;
+  code: string;
+  flats_created: number;
+}
+
+export interface OnboardingSetupResult {
+  blocks_created: number;
+  flats_created: number;
+  charges_created: number;
+  blocks: BlockSummary[];
+  message: string;
+}
+
+export async function runOnboardingSetup(
+  token: string,
+  siteId: string,
+  payload: OnboardingSetupRequest,
+): Promise<OnboardingSetupResult> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/onboarding/setup`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "X-Site-Id": siteId,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = (await res.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(err.detail ?? `Kurulum başarısız (${res.status})`);
+  }
+  return res.json() as Promise<OnboardingSetupResult>;
+}
+
+// ---------------------------------------------------------------------------
+// Sprint 15-UX — Today Actions
+// ---------------------------------------------------------------------------
+
+export interface ActionItem {
+  flat_id: string;
+  unit_no: string;
+  block_name: string;
+  description: string;
+  amount: string | null;
+  due_date: string | null;
+  days_overdue: number | null;
+}
+
+export interface TodayActionsResponse {
+  overdue_count: number;
+  overdue_total: string;
+  due_this_week_count: number;
+  due_this_week_total: string;
+  paid_today_count: number;
+  paid_today_total: string;
+  collection_rate_this_month: string;
+  overdue_items: ActionItem[];
+  due_this_week_items: ActionItem[];
+  paid_today_items: ActionItem[];
+}
+
+export async function getTodayActions(
+  token: string,
+  siteId: string,
+): Promise<TodayActionsResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/analytics/today-actions`, {
+    headers: { Authorization: `Bearer ${token}`, "X-Site-Id": siteId },
+  });
+  if (!res.ok) throw new Error("Günlük aksiyon listesi yüklenemedi");
+  return res.json() as Promise<TodayActionsResponse>;
+}
+

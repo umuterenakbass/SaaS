@@ -30,6 +30,31 @@ class AnalyticsDashboardResponse(BaseModel):
     avg_collection_rate: str
 
 
+class ActionItem(BaseModel):
+    flat_id: str
+    unit_no: str
+    block_name: str
+    description: str
+    amount: Decimal | None = None
+    due_date: str | None = None
+    days_overdue: int | None = None
+
+
+class TodayActionsResponse(BaseModel):
+    # Özet sayaçlar
+    overdue_count: int
+    overdue_total: Decimal
+    due_this_week_count: int
+    due_this_week_total: Decimal
+    paid_today_count: int
+    paid_today_total: Decimal
+    collection_rate_this_month: str  # "72.50"
+    # Aksiyon listeleri
+    overdue_items: list[ActionItem]
+    due_this_week_items: list[ActionItem]
+    paid_today_items: list[ActionItem]
+
+
 class OverdueChargeItem(BaseModel):
     charge_id: str
     flat_id: str
