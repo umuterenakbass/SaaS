@@ -22,7 +22,7 @@ import {
   getMyPayments,
   listAnnouncements,
 } from "@/lib/api";
-import { getAccessToken, getSiteId } from "@/lib/auth-storage";
+import { clearSession, getAccessToken, getSiteId } from "@/lib/auth-storage";
 
 const CHARGE_STATUS_LABELS: Record<string, string> = {
   pending: "Bekliyor",
@@ -150,12 +150,12 @@ export default function ResidentPortalPage() {
             <h1 className="text-2xl font-semibold">Sakin Portalı</h1>
             <p className="mt-1 text-sm text-indigo-100">Hesabınızı ve borçlarınızı yönetin.</p>
           </div>
-          <Link
-            href="/dashboard"
+          <button
+            onClick={() => { clearSession(); router.push("/login"); }}
             className="rounded-lg bg-white/20 px-4 py-2 text-sm font-medium text-white hover:bg-white/30"
           >
-            ← Dashboard
-          </Link>
+            Çıkış Yap
+          </button>
         </header>
 
         {error && (
