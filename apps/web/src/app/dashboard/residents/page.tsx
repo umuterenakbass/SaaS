@@ -5,12 +5,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import {
+  Block,
   Flat,
   ResidentRelation,
   UserResponse,
   createResidentRelation,
   deleteResidentRelation,
   fetchCurrentUser,
+  listBlocks,
   listFlats,
   listResidentRelations,
   listUsers,
@@ -23,6 +25,7 @@ export default function ResidentsPage() {
   const siteId = getSiteId();
 
   const [relations, setRelations] = useState<ResidentRelation[]>([]);
+  const [blocks, setBlocks] = useState<Block[]>([]);
   const [flats, setFlats] = useState<Flat[]>([]);
   const [users, setUsers] = useState<UserResponse[]>([]);
   const [userId, setUserId] = useState("");
@@ -42,11 +45,13 @@ export default function ResidentsPage() {
 
       try {
         const me = await fetchCurrentUser(token);
+        const loadedBlocks = await listBlocks(token, siteId);
         const loadedFlats = await listFlats(token, siteId);
         const loadedRelations = await listResidentRelations(token, siteId);
         const loadedUsers = await listUsers(token, siteId);
 
         setUserId(me.id);
+        setBlocks(loadedBlocks);
         setFlats(loadedFlats);
         setFlatId(loadedFlats[0]?.id ?? "");
         setRelations(loadedRelations);
@@ -91,6 +96,8 @@ export default function ResidentsPage() {
     }
   };
 
+  const blockMap = Object.fromEntries(blocks.map((b) => [b.id, b.name]));
+
   return (
     <main className="mx-auto min-h-screen w-full max-w-6xl space-y-6 bg-zinc-50 px-6 py-10">
       <header className="flex items-center justify-between">
@@ -123,7 +130,7 @@ export default function ResidentsPage() {
         >
           {flats.map((flat) => (
             <option key={flat.id} value={flat.id}>
-              {flat.unit_no} ({flat.id.slice(0, 6)})
+              {blockMap[flat.block_id] ?? "?"} / {flat.unit_no}
             </option>
           ))}
         </select>
@@ -179,7 +186,12 @@ export default function ResidentsPage() {
           >
             <div>
               <p className="font-medium text-zinc-900">
-                {relation.relation_type} | flat: {relation.flat_id.slice(0, 8)} |{" "}
+                {relation.relation_type} |{" "}
+                {(() => {
+                  const f = flats.find((x) => x.id === relation.flat_id);
+                  return f ? `${blockMap[f.block_id] ?? "?"} / ${f.unit_no}` : relation.flat_id.slice(0, 8);
+                })()}{" "}
+                |{" "}
                 {(() => {
                   const u = users.find((x) => x.id === relation.user_id);
                   return u ? (u.full_name ?? u.email) : relation.user_id.slice(0, 8);
