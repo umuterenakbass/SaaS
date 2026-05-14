@@ -4,8 +4,8 @@ from app.api.v1.endpoints.analytics import router as analytics_router
 from app.api.v1.endpoints.announcements import router as announcements_router
 from app.api.v1.endpoints.auth import router as auth_router
 from app.api.v1.endpoints.blocks import router as blocks_router
-from app.api.v1.endpoints.charges import router as charges_router
 from app.api.v1.endpoints.charge_plans import router as charge_plans_router
+from app.api.v1.endpoints.charges import router as charges_router
 from app.api.v1.endpoints.flats import router as flats_router
 from app.api.v1.endpoints.health import router as health_router
 from app.api.v1.endpoints.installments import router as installments_router

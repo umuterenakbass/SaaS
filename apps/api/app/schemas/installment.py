@@ -3,7 +3,6 @@ from decimal import Decimal
 
 from pydantic import BaseModel, Field
 
-
 # ── Item ─────────────────────────────────────────────────────────────────────
 
 class InstallmentItemOut(BaseModel):

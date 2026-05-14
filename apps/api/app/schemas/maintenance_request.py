@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from app.models.maintenance_request import MaintenanceCategory, MaintenanceStatus
 from pydantic import BaseModel
+
+from app.models.maintenance_request import MaintenanceCategory, MaintenanceStatus
 
 
 class MaintenanceRequestCreate(BaseModel):

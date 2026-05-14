@@ -12,7 +12,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base, SoftDeleteMixin, TimestampMixin
 
 if TYPE_CHECKING:
-    from app.models.charge import Charge
     from app.models.flat import Flat
 
 

@@ -6,10 +6,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.db.base import Base
-from app.db.session import get_db
-from app.main import app as fastapi_app
-
 # Tüm modellerin SQLAlchemy Base'e register olması için explicit import
 import app.models.announcement  # noqa: F401
 import app.models.block  # noqa: F401
@@ -24,6 +20,9 @@ import app.models.resident_flat_relation  # noqa: F401
 import app.models.scheduled_charge  # noqa: F401
 import app.models.site  # noqa: F401
 import app.models.user  # noqa: F401
+from app.db.base import Base
+from app.db.session import get_db
+from app.main import app as fastapi_app
 
 SQLALCHEMY_DATABASE_URL = "sqlite+pysqlite:///:memory:"
 

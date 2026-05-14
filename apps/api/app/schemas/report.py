@@ -2,7 +2,6 @@ from decimal import Decimal
 
 from pydantic import BaseModel
 
-
 # ---------- Period Summary ----------
 
 class PeriodChargeSummary(BaseModel):

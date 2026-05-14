@@ -327,9 +327,9 @@ def today_actions(
     _: User = Depends(_MGMT),
 ) -> TodayActionsResponse:
     site_id = current_user.site_id
-    today = date.today()
-    week_end = date(today.year, today.month, today.day)
     from datetime import timedelta
+
+    today = date.today()
     week_later = today + timedelta(days=7)
 
     # Blok haritası
@@ -420,7 +420,7 @@ def today_actions(
             flat_id=flat.id,
             unit_no=flat.unit_no,
             block_name=block_map.get(flat.block_id, "-"),
-            description=f"Ödeme alındı",
+            description="Ödeme alındı",
             amount=p.amount,
         ))
         paid_total += p.amount

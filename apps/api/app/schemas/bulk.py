@@ -5,7 +5,6 @@ from pydantic import BaseModel, Field
 
 from app.models.charge import ChargeStatus
 
-
 # ---------------------------------------------------------------------------
 # Bulk charge
 # ---------------------------------------------------------------------------

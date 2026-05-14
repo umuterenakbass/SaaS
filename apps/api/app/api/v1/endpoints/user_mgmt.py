@@ -109,5 +109,5 @@ def delete_user(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot delete admin user")
 
     import datetime
-    user.deleted_at = datetime.datetime.now(datetime.timezone.utc)
+    user.deleted_at = datetime.datetime.now(datetime.UTC)
     db.commit()

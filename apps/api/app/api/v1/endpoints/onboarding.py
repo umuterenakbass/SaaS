@@ -55,7 +55,6 @@ def _create_block_with_flats(
     db.add(block)
     db.flush()  # block.id'yi al
 
-    prefix = item.unit_prefix if item.unit_prefix else item.code
     flat_count = 0
     seen_units: set[str] = set()
 
@@ -109,7 +108,6 @@ def onboarding_setup(
 
     block_summaries: list[BlockSummary] = []
     total_flats = 0
-    created_flat_ids: list[str] = []
 
     for item in payload.blocks:
         block, flat_count = _create_block_with_flats(db, site_id, item)

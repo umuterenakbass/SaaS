@@ -1,5 +1,5 @@
-from datetime import date, timedelta
-from decimal import Decimal, ROUND_HALF_UP
+from datetime import date
+from decimal import ROUND_HALF_UP, Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -9,10 +9,10 @@ from app.db.session import get_db
 from app.models.installment_plan import InstallmentItem, InstallmentPlan, InstallmentStatus
 from app.models.user import User, UserRole
 from app.schemas.installment import (
+    InstallmentItemOut,
     InstallmentItemPayOut,
     InstallmentPlanCreate,
     InstallmentPlanOut,
-    InstallmentItemOut,
 )
 
 router = APIRouter(prefix="/installments", tags=["installments"])
@@ -188,7 +188,7 @@ def delete_installment_plan(
     current_user: User = Depends(require_tenant_context),
     _: User = Depends(_MANAGER),
 ) -> None:
-    from datetime import datetime, UTC
+    from datetime import UTC, datetime
     plan = db.query(InstallmentPlan).filter(
         InstallmentPlan.id == plan_id,
         InstallmentPlan.site_id == current_user.site_id,

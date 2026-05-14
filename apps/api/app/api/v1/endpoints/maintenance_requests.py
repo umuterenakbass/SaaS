@@ -5,7 +5,6 @@ from app.core.deps import require_roles, require_tenant_context
 from app.db.session import get_db
 from app.models.flat import Flat
 from app.models.maintenance_request import MaintenanceRequest, MaintenanceStatus
-from app.models.resident_flat_relation import ResidentFlatRelation
 from app.models.user import User, UserRole
 from app.schemas.maintenance_request import (
     MaintenanceRequestCreate,

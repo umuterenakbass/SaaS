@@ -5,7 +5,7 @@ from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
-from sqlalchemy import func, extract
+from sqlalchemy import extract, func
 from sqlalchemy.orm import Session
 
 from app.core.deps import require_tenant_context

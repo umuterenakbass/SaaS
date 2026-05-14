@@ -26,7 +26,7 @@ export default function LoginPage() {
       saveSession(loginResponse.access_token, me.site_id, me.role);
 
       if (me.role === "resident") {
-        router.push("/resident");
+        router.push("/dashboard/portal");
       } else {
         router.push("/dashboard");
       }
