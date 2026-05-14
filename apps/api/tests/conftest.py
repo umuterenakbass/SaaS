@@ -8,8 +8,22 @@ from sqlalchemy.pool import StaticPool
 
 from app.db.base import Base
 from app.db.session import get_db
-from app.main import app
-from app.models import Site, User  # noqa: F401
+from app.main import app as fastapi_app
+
+# Tüm modellerin SQLAlchemy Base'e register olması için explicit import
+import app.models.announcement  # noqa: F401
+import app.models.block  # noqa: F401
+import app.models.charge  # noqa: F401
+import app.models.charge_plan  # noqa: F401
+import app.models.flat  # noqa: F401
+import app.models.maintenance_request  # noqa: F401
+import app.models.notification  # noqa: F401
+import app.models.payment  # noqa: F401
+import app.models.payment_allocation  # noqa: F401
+import app.models.resident_flat_relation  # noqa: F401
+import app.models.scheduled_charge  # noqa: F401
+import app.models.site  # noqa: F401
+import app.models.user  # noqa: F401
 
 SQLALCHEMY_DATABASE_URL = "sqlite+pysqlite:///:memory:"
 
@@ -38,7 +52,7 @@ def setup_database() -> Generator[None, None, None]:
 
 @pytest.fixture
 def client() -> Generator[TestClient, None, None]:
-    app.dependency_overrides[get_db] = override_get_db
-    with TestClient(app) as test_client:
+    fastapi_app.dependency_overrides[get_db] = override_get_db
+    with TestClient(fastapi_app) as test_client:
         yield test_client
-    app.dependency_overrides.clear()
+    fastapi_app.dependency_overrides.clear()

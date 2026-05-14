@@ -30,14 +30,16 @@ dev = [
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+addopts = "-p no:cacheprovider"
 
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+exclude = ["alembic/versions/*"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
-ignore = ["B008"]
+ignore = ["B008", "E501"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
